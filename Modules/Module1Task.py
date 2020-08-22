@@ -105,6 +105,7 @@ if __name__ == '__main__':
 
     while True:
         if button_1_edge:
+            blinking_thread.raise_exception()
             GPIO.output(11, GPIO.LOW)
             GPIO.output(13, GPIO.LOW)
             GPIO.output(15, GPIO.LOW)
@@ -112,12 +113,12 @@ if __name__ == '__main__':
             delay=1/delay
             blinking_thread_temp = thread(delay,led_pin_1,led_pin_3)
             blinking_thread_temp.start()
-            blinking_thread.raise_exception()
             blinking_thread.join()
             button_1_edge = False
             blinking_thread = blinking_thread_temp
             
         if button_2_edge:
+            blinking_thread.raise_exception()
             GPIO.output(11, GPIO.LOW)
             GPIO.output(13, GPIO.LOW)
             GPIO.output(15, GPIO.LOW)
@@ -125,7 +126,6 @@ if __name__ == '__main__':
             led_pin_1, led_pin_3 = led_pin_3, led_pin_1
             blinking_thread_temp = thread(delay,led_pin_1,led_pin_3)
             blinking_thread_temp.start()
-            blinking_thread.raise_exception()
             blinking_thread.join()
             button_2_edge = False
             blinking_thread = blinking_thread_temp
