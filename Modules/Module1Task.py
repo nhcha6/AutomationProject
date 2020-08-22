@@ -34,6 +34,11 @@ GPIO.setup(led_pin_3, GPIO.OUT)
 GPIO.setup(btn_pin_1, GPIO.IN)
 GPIO.setup(btn_pin_2, GPIO.IN)
 
+# turn all leds off to start.
+GPIO.output(led_pin_1, GPIO.LOW)
+GPIO.output(led_pin_2, GPIO.LOW)
+GPIO.output(led_pin_3, GPIO.LOW)
+
 
 # thread takes delay time, and the pin numbers of the outer LEDs as input
 class thread(threading.Thread):
@@ -80,7 +85,6 @@ class thread(threading.Thread):
         if res > 1:
             ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
             print('Exception raise failure')
-        thread.join()
             
 def signal_handler(sig, frame):
     GPIO.cleanup()
@@ -109,7 +113,6 @@ if __name__ == '__main__':
     blinking_thread.start()
 
     while True:
-
         # if rising edge of button 1 was detected
         if button_1_edge:
             # exit from the run block of the old thread
@@ -124,7 +127,7 @@ if __name__ == '__main__':
             blinking_thread_temp = thread(delay,led_pin_1,led_pin_3)
             blinking_thread_temp.start()
             # terminate thread safely with join()
-            #blinking_thread.join()
+            blinking_thread.join()
             # set boolean back to false
             button_1_edge = False
             # rename new thread as main thread
@@ -144,7 +147,7 @@ if __name__ == '__main__':
             blinking_thread_temp = thread(delay,led_pin_1,led_pin_3)
             blinking_thread_temp.start()
             # terminate thread safely with join()
-            #blinking_thread.join()
+            blinking_thread.join()
             # set boolean back to false
             button_2_edge = False
             # rename new thread as main thread
