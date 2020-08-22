@@ -39,7 +39,6 @@ GPIO.output(led_pin_1, GPIO.LOW)
 GPIO.output(led_pin_2, GPIO.LOW)
 GPIO.output(led_pin_3, GPIO.LOW)
 
-
 # thread takes delay time, and the pin numbers of the outer LEDs as input
 class thread(threading.Thread):
     def __init__(self, delay, led_pin_1, led_pin_3):
@@ -127,7 +126,7 @@ if __name__ == '__main__':
             blinking_thread_temp = thread(delay,led_pin_1,led_pin_3)
             blinking_thread_temp.start()
             # terminate thread safely with join()
-            blinking_thread.join()
+            #blinking_thread.join()
             # set boolean back to false
             button_1_edge = False
             # rename new thread as main thread
@@ -147,7 +146,7 @@ if __name__ == '__main__':
             blinking_thread_temp = thread(delay,led_pin_1,led_pin_3)
             blinking_thread_temp.start()
             # terminate thread safely with join()
-            blinking_thread.join()
+            #blinking_thread.join()
             # set boolean back to false
             button_2_edge = False
             # rename new thread as main thread
