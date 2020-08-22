@@ -80,6 +80,7 @@ class thread(threading.Thread):
         if res > 1:
             ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
             print('Exception raise failure')
+        thread.join()
             
 def signal_handler(sig, frame):
     GPIO.cleanup()
@@ -123,7 +124,7 @@ if __name__ == '__main__':
             blinking_thread_temp = thread(delay,led_pin_1,led_pin_3)
             blinking_thread_temp.start()
             # terminate thread safely with join()
-            blinking_thread.join()
+            #blinking_thread.join()
             # set boolean back to false
             button_1_edge = False
             # rename new thread as main thread
@@ -143,7 +144,7 @@ if __name__ == '__main__':
             blinking_thread_temp = thread(delay,led_pin_1,led_pin_3)
             blinking_thread_temp.start()
             # terminate thread safely with join()
-            blinking_thread.join()
+            #blinking_thread.join()
             # set boolean back to false
             button_2_edge = False
             # rename new thread as main thread
