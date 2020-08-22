@@ -101,9 +101,9 @@ def button_callback_2(channel):
 
 if __name__ == '__main__':
 
-    # checked for rising edge of either button
-    GPIO.add_event_detect(btn_pin_1, GPIO.RISING, callback = button_callback_1, bouncetime=50)
-    GPIO.add_event_detect(btn_pin_2, GPIO.RISING, callback = button_callback_2, bouncetime=50)
+    # checked for falling edge of either button (switch transitions closed to open)
+    GPIO.add_event_detect(btn_pin_1, GPIO.FALLING, callback = button_callback_1, bouncetime=50)
+    GPIO.add_event_detect(btn_pin_2, GPIO.FALLING, callback = button_callback_2, bouncetime=50)
     
     #signal.signal(signal.SIGINT, signal_handler)
     #signal.pause()
