@@ -2,6 +2,7 @@ from picamera import PiCamera
 from picamera.array import PiRGBArray
 import numpy as np
 import cv2
+import time
 
 # function for displaying video of raspberry pi
 def continuousCapture():
@@ -10,6 +11,9 @@ def continuousCapture():
     # configure camera setting
     camera.resolution = (640, 480)
     camera.framerate = 32
+    # sleep and update settings
+    time.sleep(2)
+    camera.awb_mode = 'auto'
     # initialise the picture arrage with the corresponding size
     rawCapture = PiRGBArray(camera, size=(640, 480))
 
