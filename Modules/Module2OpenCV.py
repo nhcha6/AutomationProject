@@ -3,7 +3,6 @@ from picamera.array import PiRGBArray
 import numpy as np
 import cv2
 import time
-import bluring
 
 # function for displaying video of raspberry pi
 def continuousCapture():
@@ -54,7 +53,7 @@ def blurImage():
             blurseimage = cv2.GaussianBlur(image, (51, 51), 0)
 
         if pix == 1:
-            blurseimage = bluring.img_pixelate(image, 100)
+            blurseimage = img_pixelate(image, 20)
 
         # Display the resulting frame
         cv2.imshow("PP", blurseimage)
