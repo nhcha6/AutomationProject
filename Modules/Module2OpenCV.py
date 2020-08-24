@@ -101,7 +101,28 @@ def img_pixelate(image, blocks=3):
     # cv2.destroyAllWindows()
 
 
-continuousCapture()
+def color_segmentation(range1, range2):
+    # initialise object
+    camera = PiCamera()
+    # configure camera setting
+    camera.resolution = (640, 480)
+    camera.framerate = 32
+    # initialise the picture arrage with the corresponding size
+    rawCapture = PiRGBArray(camera, size=(640, 480))
+    
+    # capture frames from the camera
+    for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+        image = frame.array
+        mask = cv2.inRange(image, range1, range2)
+        masked_image = cv2.bitwise_and(image, image, mask=mask)
+        cv2.imshow(masked_image)
+
+
+range1 = (245, 15, 75)
+range2 = (265, 25, 90)
+color_segmentation(range1, range2)
+
+#continuousCapture()
 
 #blurImage()
 
