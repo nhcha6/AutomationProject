@@ -126,7 +126,7 @@ def color_segmentation(range1, range2):
     # When everything done, release the capture
     # cv2.destroyAllWindows()
 
-def create_scatter_hsv():
+def median_hsv():
     # initialise object
     camera = PiCamera()
     # configure camera setting
@@ -145,13 +145,9 @@ def create_scatter_hsv():
         if key == ord('p'):
             hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
             h, s, v = cv2.split(hsv_image)
-            fig = plt.figure()
-            axis = fig.add_subplot(1, 1, 1, projection="3d")
-            axis.scatter(h.flatten(), s.flatten(), v.flatten(), facecolors=pixel_colors, marker=".")
-            axis.set_xlabel("Hue")
-            axis.set_ylabel("Saturation")
-            axis.set_zlabel("Value")
-            plt.show()
+            print(np.median(h))
+            print(np.median(s))
+            print(np.median(v))
         if key == ord('q'):
             break
 
@@ -159,11 +155,11 @@ def create_scatter_hsv():
     # cv2.destroyAllWindows()
 
 
-range_1 = (140, 10, 20)
-range_2 = (240, 90, 90)
-#color_segmentation(range_1, range_2)
+range_1 = (145, 185, 190)
+range_2 = (165, 215, 225)
+color_segmentation(range_1, range_2)
 
-create_scatter_hsv()
+#median_hsv()
 
 #continuousCapture()
 
