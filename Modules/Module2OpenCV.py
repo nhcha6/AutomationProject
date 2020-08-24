@@ -23,7 +23,7 @@ def continuousCapture():
         # grab the raw numpy array representing the image, then initialise the timestamp and occiped/unoccupied text
         image = frame.array
         # call canny to find edges
-        image = cv2.Canny(image,100,200)
+        #image = cv2.Canny(image,100,200)
         # Display the resulting frame
         cv2.imshow("PP", image)
         # clear the stream in preparation for the next frame
