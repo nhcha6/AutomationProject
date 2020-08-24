@@ -3,6 +3,7 @@ from picamera.array import PiRGBArray
 import numpy as np
 import cv2
 import time
+import matplotlib.pyplot as plt
 
 # function for displaying video of raspberry pi
 def continuousCapture():
@@ -117,11 +118,41 @@ def color_segmentation(range1, range2):
         mask = cv2.inRange(hsv_image, range1, range2)
         masked_image = cv2.bitwise_and(image, image, mask=mask)
         cv2.imshow('PP', masked_image)
-        #cv2.imshow('PP', image)
-                # clear the stream in preparation for the next frame
+        # clear the stream in preparation for the next frame
         rawCapture.truncate(0)
-
         if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    # When everything done, release the capture
+    # cv2.destroyAllWindows()
+
+def create_scatter_hsv():
+    # initialise object
+    camera = PiCamera()
+    # configure camera setting
+    camera.resolution = (640, 480)
+    camera.framerate = 32
+    # initialise the picture arrage with the corresponding size
+    rawCapture = PiRGBArray(camera, size=(640, 480))
+
+    # capture frames from the camera
+    for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+        image = frame.array
+        cv2.imshow('PP', image)
+        # clear the stream in preparation for the next frame
+        rawCapture.truncate(0)
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('p'):
+            hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+            h, s, v = cv2.split(hsv_image)
+            fig = plt.figure()
+            axis = fig.add_subplot(1, 1, 1, projection="3d")
+            axis.scatter(h.flatten(), s.flatten(), v.flatten(), facecolors=pixel_colors, marker=".")
+            axis.set_xlabel("Hue")
+            axis.set_ylabel("Saturation")
+            axis.set_zlabel("Value")
+            plt.show()
+        if key == ord('q'):
             break
 
     # When everything done, release the capture
@@ -130,7 +161,9 @@ def color_segmentation(range1, range2):
 
 range_1 = (140, 10, 20)
 range_2 = (240, 90, 90)
-color_segmentation(range_1, range_2)
+#color_segmentation(range_1, range_2)
+
+create_scatter_hsv()
 
 #continuousCapture()
 
