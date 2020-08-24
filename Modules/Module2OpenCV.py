@@ -113,14 +113,24 @@ def color_segmentation(range1, range2):
     # capture frames from the camera
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         image = frame.array
-        mask = cv2.inRange(image, range1, range2)
+        hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+        mask = cv2.inRange(hsv_image, range1, range2)
         masked_image = cv2.bitwise_and(image, image, mask=mask)
-        cv2.imshow(masked_image)
+        cv2.imshow('PP', masked_image)
+        #cv2.imshow('PP', image)
+                # clear the stream in preparation for the next frame
+        rawCapture.truncate(0)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    # When everything done, release the capture
+    # cv2.destroyAllWindows()
 
 
-range1 = (245, 15, 75)
-range2 = (265, 25, 90)
-color_segmentation(range1, range2)
+range_1 = (140, 10, 20)
+range_2 = (240, 90, 90)
+color_segmentation(range_1, range_2)
 
 #continuousCapture()
 
