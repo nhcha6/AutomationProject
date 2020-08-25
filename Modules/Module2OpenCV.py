@@ -138,6 +138,7 @@ def median_hsv():
     # capture frames from the camera
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         image = frame.array
+        cv2.circle(frame, Point2i(320, 240), 5, Scalar(0, 0, 255), 4, 3)
         cv2.imshow('PP', image)
         # clear the stream in preparation for the next frame
         rawCapture.truncate(0)
@@ -145,9 +146,13 @@ def median_hsv():
         if key == ord('p'):
             hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
             h, s, v = cv2.split(hsv_image)
-            print(np.median(h))
-            print(np.median(s))
-            print(np.median(v))
+            #print(np.median(h))
+            #print(np.median(s))
+            #print(np.median(v))
+            print(h[320, 240])
+            print(s[320, 240])
+            print(v[320, 240])
+
         if key == ord('q'):
             break
 
