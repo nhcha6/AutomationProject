@@ -108,6 +108,10 @@ def color_segmentation(range1, range2):
     # configure camera setting
     camera.resolution = (640, 480)
     camera.framerate = 32
+    # sleep and update settings
+    time.sleep(2)
+    camera.awb_mode = 'off'
+    camera.awb_gains = 1.3
     # initialise the picture arrage with the corresponding size
     rawCapture = PiRGBArray(camera, size=(640, 480))
     
@@ -132,26 +136,24 @@ def median_hsv():
     # configure camera setting
     camera.resolution = (640, 480)
     camera.framerate = 32
+    # sleep and update settings
+    time.sleep(2)
+    camera.awb_mode = 'off'
+    camera.awb_gains = 1.3
     # initialise the picture arrage with the corresponding size
     rawCapture = PiRGBArray(camera, size=(640, 480))
 
     # capture frames from the camera
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         image = frame.array
-        cv2.circle(frame, Point2i(320, 240), 5, Scalar(0, 0, 255), 4, 3)
+        cv2.circle(image, (320, 240), 5, (0, 0, 255), 4, 3)
         cv2.imshow('PP', image)
         # clear the stream in preparation for the next frame
         rawCapture.truncate(0)
         key = cv2.waitKey(1) & 0xFF
         if key == ord('p'):
             hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
-            h, s, v = cv2.split(hsv_image)
-            #print(np.median(h))
-            #print(np.median(s))
-            #print(np.median(v))
-            print(h[320, 240])
-            print(s[320, 240])
-            print(v[320, 240])
+            print(hsv_image[240,320])
 
         if key == ord('q'):
             break
@@ -160,8 +162,8 @@ def median_hsv():
     # cv2.destroyAllWindows()
 
 
-range_1 = (145, 185, 190)
-range_2 = (165, 215, 225)
+range_1 = (165, 140, 60)
+range_2 = (175, 230, 130)
 color_segmentation(range_1, range_2)
 
 #median_hsv()
