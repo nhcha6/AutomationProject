@@ -115,7 +115,7 @@ def color_segmentation(range1, range2):
     # initialise the picture arrage with the corresponding size
     rawCapture = PiRGBArray(camera, size=(640, 480))
     
-    centres = np.empty([0,2])
+    centres = []
     # capture frames from the camera
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         image = frame.array
@@ -128,11 +128,12 @@ def color_segmentation(range1, range2):
             M = cv2.moments(mask)
             cX = int(M["m10"]/M["m00"])
             cY = int(M["m01"]/M["m00"])
-            centres = np.append(centres,[cX,cY])
+            centres.append([cX,cY])
             cv2.circle(image, (cX, cY), 5, (0, 0, 255), 4, 3)
-            cv2.polylines(image,centres, isClosed = False, color = (255,0,0), thickness=2)
         except ZeroDivisionError:
             pass
+        cv2.polylines(image, [np.array(centres)], isClosed = False, color = (255,0,0), thickness=2)
+
 
         #cv2.imshow('PP', masked_image)
         cv2.imshow('PP', image)
