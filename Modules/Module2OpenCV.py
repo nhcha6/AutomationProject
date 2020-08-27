@@ -121,7 +121,15 @@ def color_segmentation(range1, range2):
         hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
         mask = cv2.inRange(hsv_image, range1, range2)
         masked_image = cv2.bitwise_and(image, image, mask=mask)
-        cv2.imshow('PP', masked_image)
+
+        # calc moments
+        M = cv2.moments(mask)
+        cX = int(M["m10"]/M["m00"])
+        cY = int(M["m01"]/M["m00"])
+        cv2.circle(image, (cX, cY), 5, (0, 0, 255), 4, 3)
+
+        #cv2.imshow('PP', masked_image)
+        cv2.imshow('PP', image)
         # clear the stream in preparation for the next frame
         rawCapture.truncate(0)
         if cv2.waitKey(1) & 0xFF == ord('q'):
