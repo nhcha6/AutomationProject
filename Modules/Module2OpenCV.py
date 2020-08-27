@@ -123,10 +123,13 @@ def color_segmentation(range1, range2):
         masked_image = cv2.bitwise_and(image, image, mask=mask)
 
         # calc moments
-        M = cv2.moments(mask)
-        cX = int(M["m10"]/M["m00"])
-        cY = int(M["m01"]/M["m00"])
-        cv2.circle(image, (cX, cY), 5, (0, 0, 255), 4, 3)
+        try:
+            M = cv2.moments(mask)
+            cX = int(M["m10"]/M["m00"])
+            cY = int(M["m01"]/M["m00"])
+            cv2.circle(image, (cX, cY), 5, (0, 0, 255), 4, 3)
+        except ZeroDivisionError:
+            pass
 
         #cv2.imshow('PP', masked_image)
         cv2.imshow('PP', image)
