@@ -28,7 +28,10 @@ GPIO.setup(btn_pin_2, GPIO.IN)
 # interrupt function of button 1 changes global boolean
 def button_callback_1(channel):
     global draw_erase
-    draw_erase = "draw"
+    if draw_erase == "draw":
+        draw_erase = "off"
+    elif draw_erase == "off":
+        draw_erase = "draw"
 
 # interrupt function of button 2 changes global boolean
 def button_callback_2(channel):
@@ -148,7 +151,9 @@ def color_segmentation(range1, range2):
     # initialise the picture arrage with the corresponding size
     rawCapture = PiRGBArray(camera, size=(640, 480))
     
-    centres = []
+    currentLine = []
+    listOfLines = []
+    previous = draw_erase
     # capture frames from the camera
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         image = frame.array
@@ -157,16 +162,23 @@ def color_segmentation(range1, range2):
         masked_image = cv2.bitwise_and(image, image, mask=mask)
 
         if draw_erase=="draw":
+            if previous != draw_erase:
+                listOfLines.append(np.array(currentLine))
+                currentLine = []
+
             # calc moments
             try:
                 M = cv2.moments(mask)
                 cX = int(M["m10"]/M["m00"])
                 cY = int(M["m01"]/M["m00"])
-                centres.append([cX,cY])
+                currentLine.append([cX,cY])
                 cv2.circle(image, (cX, cY), 5, (0, 0, 255), 4, 3)
             except ZeroDivisionError:
                 pass
-            cv2.polylines(image, [np.array(centres)], isClosed = False, color = (255,0,0), thickness=2)
+            
+        previous = draw_erase
+        cv2.polylines(image, listOfLines, isClosed = False, color = (255,0,0), thickness=2)
+        cv2.polylines(image, [np.array(currentLine)], isClosed = False, color = (255,0,0), thickness=2)
 
         #cv2.imshow('PP', masked_image)
         cv2.imshow('PP', image)
@@ -254,11 +266,11 @@ def continuousCaptureFace():
 
 range_1 = (165, 140, 60)
 range_2 = (175, 230, 130)
-#color_segmentation(range_1, range_2)
+color_segmentation(range_1, range_2)
 
 #median_hsv()
 
 #continuousCapture()
 
 #blurImage()
-continuousCaptureFace()
+#continuousCaptureFace()
