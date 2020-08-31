@@ -175,15 +175,57 @@ def median_hsv():
 
     # When everything done, release the capture
     # cv2.destroyAllWindows()
+def continuousCaptureFace():
+    # initialise object
+    camera = PiCamera()
+    # configure camera setting
+    camera.resolution = (640, 480)
+    camera.framerate = 32
+    # sleep and update settings
+    time.sleep(2)
+    camera.awb_mode = 'off'
+    camera.awb_gains = 1.3
+    # initialise the picture arrage with the corresponding size
+    rawCapture = PiRGBArray(camera, size=(640, 480))
+
+    face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+    eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
+    # capture frames from the camera
+    for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+
+        # grab the raw numpy array representing the image, then initialise the timestamp and occiped/unoccupied text
+        image = frame.array
+        # call canny to find edges
+        #image = cv2.Canny(image,100,200)
+        # Display the resulting frame
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+        for (x,y,w,h) in faces:
+            image = cv2.rectangle(image,(x,y),(x+w,y+h),(255,0,0),2)
+            roi_gray = gray[y:y+h, x:x+w]
+            roi_color = image[y:y+h, x:x+w]
+            eyes = eye_cascade.detectMultiScale(roi_gray)
+            for (ex,ey,ew,eh) in eyes:
+                cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
+        
+    
+        cv2.imshow("PP", image)
+        # clear the stream in preparation for the next frame
+        rawCapture.truncate(0)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    # When everything done, release the capture
+    # cv2.destroyAllWindows()
 
 
 range_1 = (165, 140, 60)
 range_2 = (175, 230, 130)
-color_segmentation(range_1, range_2)
+#color_segmentation(range_1, range_2)
 
 #median_hsv()
 
 #continuousCapture()
 
 #blurImage()
-
+continuousCaptureFace()
