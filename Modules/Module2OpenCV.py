@@ -3,7 +3,37 @@ from picamera.array import PiRGBArray
 import numpy as np
 import cv2
 import time
+import RPi.GPIO as GPIO # Import module “RPi.GPIO” and gave it a nickname “GPIO”
 import matplotlib.pyplot as plt
+
+# setup GPIO modules
+# Define button pin numbers
+btn_pin_1 = 16
+btn_pin_2 = 18
+
+# declare global variables
+# draw_erase = "draw", "erase" or "off"
+draw_erase = "off"
+
+# Suppress warnings
+GPIO.setwarnings(False)
+
+# set pin numbering to board
+GPIO.setmode(GPIO.BOARD)
+
+# set pins
+GPIO.setup(btn_pin_1, GPIO.IN)
+GPIO.setup(btn_pin_2, GPIO.IN)
+
+# interrupt function of button 1 changes global boolean
+def button_callback_1(channel):
+    global draw_erase
+    draw_erase = "draw"
+
+# interrupt function of button 2 changes global boolean
+def button_callback_2(channel):
+    global button_2_edge
+    button_2_edge = True
 
 # function for displaying video of raspberry pi
 def continuousCapture():
@@ -103,6 +133,9 @@ def img_pixelate(image, blocks=3):
 
 
 def color_segmentation(range1, range2):
+    # checked for rising edge of either button (switch transitions closed to open)
+    GPIO.add_event_detect(btn_pin_1, GPIO.RISING, callback = button_callback_1, bouncetime=50)
+    GPIO.add_event_detect(btn_pin_2, GPIO.RISING, callback = button_callback_2, bouncetime=50)
     # initialise object
     camera = PiCamera()
     # configure camera setting
@@ -123,17 +156,17 @@ def color_segmentation(range1, range2):
         mask = cv2.inRange(hsv_image, range1, range2)
         masked_image = cv2.bitwise_and(image, image, mask=mask)
 
-        # calc moments
-        try:
-            M = cv2.moments(mask)
-            cX = int(M["m10"]/M["m00"])
-            cY = int(M["m01"]/M["m00"])
-            centres.append([cX,cY])
-            cv2.circle(image, (cX, cY), 5, (0, 0, 255), 4, 3)
-        except ZeroDivisionError:
-            pass
-        cv2.polylines(image, [np.array(centres)], isClosed = False, color = (255,0,0), thickness=2)
-
+        if draw_erase=="draw":
+            # calc moments
+            try:
+                M = cv2.moments(mask)
+                cX = int(M["m10"]/M["m00"])
+                cY = int(M["m01"]/M["m00"])
+                centres.append([cX,cY])
+                cv2.circle(image, (cX, cY), 5, (0, 0, 255), 4, 3)
+            except ZeroDivisionError:
+                pass
+            cv2.polylines(image, [np.array(centres)], isClosed = False, color = (255,0,0), thickness=2)
 
         #cv2.imshow('PP', masked_image)
         cv2.imshow('PP', image)
