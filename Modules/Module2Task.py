@@ -127,13 +127,8 @@ def median_hsv():
     # cv2.destroyAllWindows()
 
 
-range_1 = (165, 140, 60)
-range_2 = (175, 230, 130)
+range_1 = (160, 170, 0)
+range_2 = (170, 260, 100)
 color_segmentation(range_1, range_2)
 
-# median_hsv()
-
-# continuousCapture()
-
-# blurImage()
-# continuousCaptureFace()
+#median_hsv()
