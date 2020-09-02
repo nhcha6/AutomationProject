@@ -144,8 +144,45 @@ def continuousCaptureFace():
     # When everything done, release the capture
     # cv2.destroyAllWindows()
 
+# function for displaying video of raspberry pi
+def continuousCaptureLineTest():
+    # initialise object
+    camera = PiCamera()
+    # configure camera setting
+    camera.resolution = (640, 480)
+    camera.framerate = 32
+    # sleep and update settings
+    time.sleep(2)
+    camera.awb_mode = 'auto'
+    # initialise the picture arrage with the corresponding size
+    rawCapture = PiRGBArray(camera, size=(640, 480))
+
+    black = np.zeros((640, 480, 3))
+    cv2.imshow("drawing", black)
+    cv2.polylines(black, [np.array([(320, 240), (320, 480)])], isClosed=False, color=(255, 0, 0), thickness=2)
+
+    # capture frames from the camera
+    for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+
+        # grab the raw numpy array representing the image, then initialise the timestamp and occiped/unoccupied text
+        image = frame.array
+        # call canny to find edges
+        #image = cv2.Canny(image,100,200)
+        # Display the resulting frame
+        cv2.imshow("PP", image)
+        # clear the stream in preparation for the next frame
+        rawCapture.truncate(0)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    # When everything done, release the capture
+    # cv2.destroyAllWindows()
+
 
 #continuousCapture()
+
+continuousCaptureLineTest()
 
 #blurImage()
 
