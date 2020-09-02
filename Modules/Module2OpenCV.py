@@ -157,19 +157,29 @@ def continuousCaptureLineTest():
     # initialise the picture arrage with the corresponding size
     rawCapture = PiRGBArray(camera, size=(640, 480))
 
-    black = np.zeros((640, 480, 3))
-    cv2.imshow("drawing", black)
-    cv2.polylines(black, [np.array([(320, 240), (320, 480)])], isClosed=False, color=(255, 0, 0), thickness=2)
+    drawing = np.zeros((480, 640, 3))
+    cv2.polylines(drawing, [np.array([(320, 240), (320, 0)])], isClosed=False, color=(255, 0, 0), thickness=2)
+    cv2.polylines(drawing, [np.array([(320, 240), (0, 240)])], isClosed=False, color=(0, 255, 0), thickness=2)
+    cv2.imshow("drawing", drawing)
+    
+    flag = True
 
     # capture frames from the camera
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
 
         # grab the raw numpy array representing the image, then initialise the timestamp and occiped/unoccupied text
         image = frame.array
+        drawn_image = np.empty((480, 640, 3))
+        for i in range(640):
+            for j in range(480):
+                if np.array_equal(drawing[j,i], np.zeros(3)):
+                    drawn_image[j,i] = image[j,i]
+                else:
+                    drawn_image[j,i] = drawing[j,i]
         # call canny to find edges
         #image = cv2.Canny(image,100,200)
         # Display the resulting frame
-        cv2.imshow("PP", image)
+        cv2.imshow("PP", drawn_image)
         # clear the stream in preparation for the next frame
         rawCapture.truncate(0)
 
