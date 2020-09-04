@@ -29,7 +29,9 @@ try:
         file_bytes = np.asarray(bytearray(image_stream.read()), dtype=np.uint8)
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         cv2.imshow("Image", img)
-        cv2.waitKey(1)
+        if cv2.waitKey(1) & 0xFF == ord('s'):
+            data = input(' -> ')
+            connection.send(data.encode)
 
 finally:
     connection.close()

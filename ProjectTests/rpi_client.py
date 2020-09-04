@@ -25,6 +25,9 @@ try:
     start = time.time()
     stream = io.BytesIO()
     for foo in camera.capture_continuous(stream, 'jpeg'):
+        data = client_socket.recv(1024).decode
+        if data:
+            print(data)
         # Write the length of the capture to the stream and flush to
         # ensure it actually gets sent
         connection.write(struct.pack('<L', stream.tell()))
