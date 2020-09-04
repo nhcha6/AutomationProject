@@ -31,7 +31,10 @@ try:
         cv2.imshow("Image", img)
         if cv2.waitKey(1) & 0xFF == ord('s'):
             data = input(' -> ')
-            connection.send(data.encode)
+            connection.send(data.encode())
+        else:
+            data = 'no data'
+            connection.send(data.encode())
 
 finally:
     connection.close()
