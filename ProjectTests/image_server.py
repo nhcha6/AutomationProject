@@ -29,12 +29,7 @@ try:
         file_bytes = np.asarray(bytearray(image_stream.read()), dtype=np.uint8)
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         cv2.imshow("Image", img)
-        if cv2.waitKey(1) & 0xFF == ord('s'):
-            data = input(' -> ')
-            connection.send(data.encode())
-        else:
-            data = 'no data'
-            connection.send(data.encode())
+        cv2.waitKey(1)
 
 finally:
     connection.close()
