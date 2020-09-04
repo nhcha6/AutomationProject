@@ -2,6 +2,7 @@ import io
 import socket
 import struct
 import cv2
+import numpy as np
 
 # Start a socket listening for connections on 0.0.0.0:8000 (0.0.0.0 means
 # all interfaces)
@@ -25,8 +26,11 @@ try:
         # Rewind the stream, open it as an image with PIL and do some
         # processing on it
         image_stream.seek(0)
-        image = cv2.imread(image_stream, 0)
-        cv2.imshow("PP", image)
+        file_bytes = np.asarray(bytearray(image_stream.read()), dtype=np.uint8)
+        img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+        cv2.imshow("Image", img)
+        cv2.waitKey(1)
+
 finally:
     connection.close()
     server_socket.close()
