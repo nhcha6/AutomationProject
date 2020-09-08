@@ -1,26 +1,32 @@
 import pigpio
 import time
-def servoCamControl():
+def servoCamPan():
     pi = pigpio.pi() #connect to local Pi.
-    pi.set_mode(23, pigpio.INPUT) #set pin 23 as input
-    pi.set_pull_up_down(23, pigpio.PUD_UP) #set internal pull up resistor for pin 23
-    print(pi.read(23)) #get the pin status, should print 1
+    # pi.set_mode(23, pigpio.INPUT) #set pin 23 as input
+    # pi.set_pull_up_down(23, pigpio.PUD_UP) #set internal pull up resistor for pin 23
+    # print(pi.read(23)) #get the pin status, should print 1
     pi.set_mode(18, pigpio.OUTPUT)
     pi.set_mode(17, pigpio.OUTPUT)
     pi.set_servo_pulsewidth(18, 0)    # off
     pi.set_servo_pulsewidth(17, 0)    # off
     time.sleep(2)
-    pi.set_servo_pulsewidth(18, 500) # safe anti-clockwise
-    pi.set_servo_pulsewidth(17, 500) # safe anti-clockwise
-    time.sleep(2)
-    pi.set_servo_pulsewidth(18, 1500) # centre
-    pi.set_servo_pulsewidth(17, 1500) # centre
-    time.sleep(2)
-    pi.set_servo_pulsewidth(18, 2500) # safe clockwise
-    pi.set_servo_pulsewidth(17, 2500) # safe clockwise
-    time.sleep(2)
+    # 500 anti clockwise, 2500 clockwise
+    for i in range(500, 2500, 5):
+        pi.set_servo_pulsewidth(18, i)
+        pi.set_servo_pulsewidth(17, i)
+        time.sleep(0.02)
     pi.set_servo_pulsewidth(18, 0)    # off
     pi.set_servo_pulsewidth(17, 0)    # off
+
+def servoCamCentre():
+    pi = pigpio.pi() #connect to local Pi.
+    # pi.set_mode(23, pigpio.INPUT) #set pin 23 as input
+    # pi.set_pull_up_down(23, pigpio.PUD_UP) #set internal pull up resistor for pin 23
+    # print(pi.read(23)) #get the pin status, should print 1
+    pi.set_mode(18, pigpio.OUTPUT)
+    pi.set_mode(17, pigpio.OUTPUT)
+    pi.set_servo_pulsewidth(18, 1500)
+    pi.set_servo_pulsewidth(17, 1000)
 
 def vibrateControl():
     pi = pigpio.pi() #connect to local Pi.
@@ -34,4 +40,5 @@ def vibrateControl():
         time.sleep(1)
 
 
-servoCamControl()
+servoCamPan()
+servoCamCentre()
