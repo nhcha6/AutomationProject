@@ -12,7 +12,7 @@ btn_pin_1 = 16
 btn_pin_2 = 18
 
 # declare global variables
-# draw_erase = "draw", "erase" or "off"
+# draw_erase = "draw", "erase", "offErase" or "offDraw"
 draw_erase = "offErase"
 color_button = "Blue"
 drawing_color = (0, 0, 0)
@@ -30,7 +30,9 @@ GPIO.setup(btn_pin_1, GPIO.IN)
 GPIO.setup(btn_pin_2, GPIO.IN)
 
 
-# interrupt function of button 1 changes global boolean
+# interrupt function of button 1. When pressed, the global variable draw_erase is changed to move the program into the
+# next state. If "draw" or "erase" are the next state in the cycle, the appropriate thickness and color are set on the
+# corresponding global variables. The currentLine variable is also reset.
 def button_callback_1(channel):
     global draw_erase
     global drawing_color
@@ -51,7 +53,8 @@ def button_callback_1(channel):
         drawing_color = chosen_color
         thickness = 5
 
-# interrupt function of button 2 changes global boolean
+# interrupt function of button 2. When pressed, the drawing colour global variable is changed to the next one in the
+# cycle.
 def button_callback_2(channel):
     global chosen_color
     global drawing_color
@@ -68,11 +71,15 @@ def button_callback_2(channel):
     elif color_button == "Red":
         chosen_color = (255, 0, 0)
         color_button = "Blue"
-        
+
+    # if in draw mode currently, make sure the drawing color is updated with the new chosen color, and the
+    # currentLine variable is reset.
     if draw_erase == "draw":
         drawing_color = chosen_color
         currentLine = []
 
+
+# function runs drawing code.
 def color_segmentation(range1, range2):
     # checked for rising edge of either button (switch transitions closed to open)
     GPIO.add_event_detect(btn_pin_1, GPIO.RISING, callback=button_callback_1, bouncetime=50)
@@ -89,25 +96,28 @@ def color_segmentation(range1, range2):
     # initialise the picture arrage with the corresponding size
     rawCapture = PiRGBArray(camera, size=(640, 480))
 
-    #currentLine = []
-    
-    #previous = draw_erase
-    # capture frames from the camera
+    # create an all black image to be the base for the drawing image.
     drawing = np.zeros((480, 640, 3), np.uint8)
-    
+
+    # continuously capture images in for loop.
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+        # extract image, convert to hsv and then apply range to get mask.
         image = frame.array
         hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
         maskFinger = cv2.inRange(hsv_image, range1, range2)
-        masked_image = cv2.bitwise_and(image, image, mask=maskFinger)
+        #masked_image = cv2.bitwise_and(image, image, mask=maskFinger)
         
-        # create mask of drawn image
+        # create mask of drawn image, which has been added to in previous loops.
         drawing_gray = cv2.cvtColor(drawing, cv2.COLOR_BGR2GRAY)
         ret, mask = cv2.threshold(drawing_gray, 10, 255, cv2.THRESH_BINARY)
         mask_inv = cv2.bitwise_not(mask)
 
+        # add the drawing image to the captured image.
         image_masked = cv2.bitwise_and(image, image, mask = mask_inv)
         drawn_image = cv2.add(image_masked, drawing)
+
+        # if in draw mode or erase mode, capture the centre of mass of the coloured object, display it
+        # on the screen as a circle, and then add the point to the line currently being drawn.
         if draw_erase == "draw" or draw_erase == "erase":
             #if previous != draw_erase:
                 
@@ -123,7 +133,7 @@ def color_segmentation(range1, range2):
             except ZeroDivisionError:
                 pass
 
-        #previous = draw_erase
+        # draw the line on the black backed drawing image.
         cv2.polylines(drawing, [np.array(currentLine)], isClosed=False, color = drawing_color, thickness=thickness)
 
         # cv2.imshow('PP', masked_image)
@@ -136,7 +146,7 @@ def color_segmentation(range1, range2):
     # When everything done, release the capture
     # cv2.destroyAllWindows()
 
-
+# function for displaying the hsv values for the middle point of the frame.
 def median_hsv():
     # initialise object
     camera = PiCamera()
@@ -168,9 +178,10 @@ def median_hsv():
     # When everything done, release the capture
     # cv2.destroyAllWindows()
 
-
+# range calculated for blue lid using the median_hsv() function.
 range_1 = (170, 110, 50)
 range_2 = (180, 230, 150)
+# call drawing function using the prescribed range.
 color_segmentation(range_1, range_2)
 
 #median_hsv()+
