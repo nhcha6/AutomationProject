@@ -47,6 +47,7 @@ def color_segmentation(range1, range2):
         # clear the stream in preparation for the next frame
         rawCapture.truncate(0)
         if cv2.waitKey(1) & 0xFF == ord('q'):
+            servoCamCentre()
             break
 
     # When everything done, release the capture
