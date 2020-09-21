@@ -17,10 +17,13 @@ class thread(threading.Thread):
             result_client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             result_client_socket.connect(('Nicolass-MacBook-Air.local', 8081))
             while True:
-                #time.sleep(1)
                 result = result_client_socket.recv(4096)
                 close_message = 'close'
-                if result == close_message.encode():
+                
+                if len(result) == 8:
+                    ut_received = struct.unpack('<2f', result)
+                    print(ut_received)
+                elif result == close_message.encode():
                     print(result.decode())
                     global closeFlag
                     closeFlag = True
@@ -65,6 +68,10 @@ try:
     # Start a preview and let the camera warm up for 2 seconds
     camera.start_preview()
     time.sleep(2)
+
+    # turn off auto whiteness
+    camera.awb_mode = 'off'
+    camera.awb_gains = 1.3
 
     # Note the start time and construct a stream to hold image data
     # temporarily (we could write it directly to connection but in this
