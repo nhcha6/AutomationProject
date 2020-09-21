@@ -87,7 +87,7 @@ try:
         send_data = struct.pack('<2f', ut[0], ut[1])
         result_connection.send(send_data)
 
-        if cv2.waitKey(1) & 0xFF == ord('s'):
+        if cv2.waitKey(1) & 0xFF == ord('q'):
             print('yep')
             message = 'close'
             result_connection.send(message.encode())
