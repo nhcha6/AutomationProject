@@ -55,7 +55,7 @@ def face_tracker_tensorflow(img):
             cX = int(np.round(0.5 * (x1 + x2)))
             cY = int(np.round(0.5 * (y1 + y2)))
             max_centre = (cX, cY)
-        #head_direction(img, rect)
+        head_direction(img, rect)
     if max_centre is not None:
         cv2.circle(img, max_centre, 5, (0, 0, 255), 4, 3)
         ut = PID_controller(max_centre, DESIRED_POS)
@@ -90,67 +90,73 @@ def gaze_direction(img, rect):
         pass
 
 def head_direction(img, face):
-    marks = detect_marks(img, landmark_model, face)
-    # mark_detector.draw_marks(img, marks, color=(0, 255, 0))
-    image_points = np.array([
-        marks[30],  # Nose tip
-        marks[8],  # Chin
-        marks[36],  # Left eye left corner
-        marks[45],  # Right eye right corne
-        marks[48],  # Left Mouth corner
-        marks[54]  # Right mouth corner
-    ], dtype="double")
-    dist_coeffs = np.zeros((4, 1))  # Assuming no lens distortion
-    (success, rotation_vector, translation_vector) = cv2.solvePnP(model_points, image_points, camera_matrix,
-                                                                  dist_coeffs, flags=cv2.SOLVEPNP_UPNP)
-
-    # Project a 3D point (0, 0, 1000.0) onto the image plane.
-    # We use this to draw a line sticking out of the nose
-
-    (nose_end_point2D, jacobian) = cv2.projectPoints(np.array([(0.0, 0.0, 1000.0)]), rotation_vector,
-                                                     translation_vector, camera_matrix, dist_coeffs)
-
-    for p in image_points:
-        cv2.circle(img, (int(p[0]), int(p[1])), 3, (0, 0, 255), -1)
-
-    p1 = (int(image_points[0][0]), int(image_points[0][1]))
-    p2 = (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
-    x1, x2 = head_pose_points(img, rotation_vector, translation_vector, camera_matrix)
-
-    cv2.line(img, p1, p2, (0, 255, 255), 2)
-    cv2.line(img, tuple(x1), tuple(x2), (255, 255, 0), 2)
-    # for (x, y) in marks:
-    #     cv2.circle(img, (x, y), 4, (255, 255, 0), -1)
-    # cv2.putText(img, str(p1), p1, font, 1, (0, 255, 255), 1)
     try:
-        m = (p2[1] - p1[1]) / (p2[0] - p1[0])
-        ang1 = int(math.degrees(math.atan(m)))
-    except:
-        ang1 = 90
+        marks = detect_marks(img, landmark_model, face)
+        # mark_detector.draw_marks(img, marks, color=(0, 255, 0))
+        image_points = np.array([
+            marks[30],  # Nose tip
+            marks[8],  # Chin
+            marks[36],  # Left eye left corner
+            marks[45],  # Right eye right corne
+            marks[48],  # Left Mouth corner
+            marks[54]  # Right mouth corner
+        ], dtype="double")
+        image_points_reshape = np.ascontiguousarray(image_points[:, :2]).reshape((image_points.shape[0], 1, 2))
 
-    try:
-        m = (x2[1] - x1[1]) / (x2[0] - x1[0])
-        ang2 = int(math.degrees(math.atan(-1 / m)))
-    except:
-        ang2 = 90
 
-        # print('div by zero error')
-    if ang1 >= 48:
-        print('Head down')
-        cv2.putText(img, 'Head down', (30, 30), font, 2, (255, 255, 128), 3)
-    elif ang1 <= -48:
-        print('Head up')
-        cv2.putText(img, 'Head up', (30, 30), font, 2, (255, 255, 128), 3)
+        dist_coeffs = np.zeros((4, 1))  # Assuming no lens distortion
+        (success, rotation_vector, translation_vector) = cv2.solvePnP(model_points, image_points_reshape, camera_matrix,
+                                                                      dist_coeffs, flags=cv2.SOLVEPNP_UPNP)
 
-    if ang2 >= 48:
-        print('Head right')
-        cv2.putText(img, 'Head right', (90, 30), font, 2, (255, 255, 128), 3)
-    elif ang2 <= -48:
-        print('Head left')
-        cv2.putText(img, 'Head left', (90, 30), font, 2, (255, 255, 128), 3)
+        # Project a 3D point (0, 0, 1000.0) onto the image plane.
+        # We use this to draw a line sticking out of the nose
 
-    cv2.putText(img, str(ang1), tuple(p1), font, 2, (128, 255, 255), 3)
-    cv2.putText(img, str(ang2), tuple(x1), font, 2, (255, 255, 128), 3)
+        (nose_end_point2D, jacobian) = cv2.projectPoints(np.array([(0.0, 0.0, 1000.0)]), rotation_vector,
+                                                         translation_vector, camera_matrix, dist_coeffs)
+
+        for p in image_points:
+            cv2.circle(img, (int(p[0]), int(p[1])), 3, (0, 0, 255), -1)
+
+        p1 = (int(image_points[0][0]), int(image_points[0][1]))
+        p2 = (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
+        x1, x2 = head_pose_points(img, rotation_vector, translation_vector, camera_matrix)
+
+        cv2.line(img, p1, p2, (0, 255, 255), 2)
+        cv2.line(img, tuple(x1), tuple(x2), (255, 255, 0), 2)
+        # for (x, y) in marks:
+        #     cv2.circle(img, (x, y), 4, (255, 255, 0), -1)
+        # cv2.putText(img, str(p1), p1, font, 1, (0, 255, 255), 1)
+        try:
+            m = (p2[1] - p1[1]) / (p2[0] - p1[0])
+            ang1 = int(math.degrees(math.atan(m)))
+        except:
+            ang1 = 90
+
+        try:
+            m = (x2[1] - x1[1]) / (x2[0] - x1[0])
+            ang2 = int(math.degrees(math.atan(-1 / m)))
+        except:
+            ang2 = 90
+
+            # print('div by zero error')
+        if ang1 >= 48:
+            print('Head down')
+            cv2.putText(img, 'Head down', (30, 30), font, 2, (255, 255, 128), 3)
+        elif ang1 <= -48:
+            print('Head up')
+            cv2.putText(img, 'Head up', (30, 30), font, 2, (255, 255, 128), 3)
+
+        if ang2 >= 48:
+            print('Head right')
+            cv2.putText(img, 'Head right', (90, 30), font, 2, (255, 255, 128), 3)
+        elif ang2 <= -48:
+            print('Head left')
+            cv2.putText(img, 'Head left', (90, 30), font, 2, (255, 255, 128), 3)
+
+        cv2.putText(img, str(ang1), tuple(p1), font, 2, (128, 255, 255), 3)
+        cv2.putText(img, str(ang2), tuple(x1), font, 2, (255, 255, 128), 3)
+    except cv2.error:
+        pass
 
 def nothing(x):
     pass
@@ -169,12 +175,12 @@ cv2.createTrackbar('threshold', 'image', 75, 255, nothing)
 # Start a socket listening for connections on 0.0.0.0:8000 (0.0.0.0 means
 # all interfaces)
 image_server_socket = socket.socket()
-image_server_socket.bind(('0.0.0.0', 8000))
+image_server_socket.bind(('0.0.0.0', 8001))
 image_server_socket.listen(0)
 
 # start new socket to send data back to the client
 result_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-result_server_socket.bind(('0.0.0.0', 8080))
+result_server_socket.bind(('0.0.0.0', 8081))
 result_server_socket.listen(0)
 
 # Accept a single connection and make a file-like object out of it
