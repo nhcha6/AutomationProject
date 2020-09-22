@@ -164,6 +164,7 @@ def nothing(x):
 # prepare face recognition and eye tracking libraries
 face_model = get_face_detector()
 landmark_model = get_landmark_model()
+# eye tracking requirements
 left = [36, 37, 38, 39, 40, 41]
 right = [42, 43, 44, 45, 46, 47]
 img = np.zeros((480, 640, 3), np.uint8)
@@ -171,6 +172,28 @@ thresh = img.copy()
 cv2.namedWindow('image')
 kernel = np.ones((9, 9), np.uint8)
 cv2.createTrackbar('threshold', 'image', 75, 255, nothing)
+# head pose requirements
+face_model = get_face_detector()
+landmark_model = get_landmark_model()
+size = img.shape
+font = cv2.FONT_HERSHEY_SIMPLEX
+# 3D model points.
+model_points = np.array([
+                            (0.0, 0.0, 0.0),             # Nose tip
+                            (0.0, -330.0, -65.0),        # Chin
+                            (-225.0, 170.0, -135.0),     # Left eye left corner
+                            (225.0, 170.0, -135.0),      # Right eye right corne
+                            (-150.0, -150.0, -125.0),    # Left Mouth corner
+                            (150.0, -150.0, -125.0)      # Right mouth corner
+                        ])
+# Camera internals
+focal_length = size[1]
+center = (size[1]/2, size[0]/2)
+camera_matrix = np.array(
+                         [[focal_length, 0, center[0]],
+                         [0, focal_length, center[1]],
+                         [0, 0, 1]], dtype = "double"
+                         )
 
 # Start a socket listening for connections on 0.0.0.0:8000 (0.0.0.0 means
 # all interfaces)

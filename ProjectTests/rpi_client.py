@@ -44,7 +44,7 @@ class thread(threading.Thread):
         try:
             # create socket
             result_client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            result_client_socket.connect(('Nicolass-MacBook-Air.local', 8080))
+            result_client_socket.connect(('Nicolass-MacBook-Air.local', 8081))
 
             # declare servo control
             pi = pigpio.pi()  # connect to local Pi.
@@ -97,7 +97,7 @@ result_thread.start()
 # Connect a client socket to my_server:8000 (change my_server to the
 # hostname of your server)
 image_client_socket = socket.socket()
-image_client_socket.connect(('Nicolass-MacBook-Air.local', 8000))
+image_client_socket.connect(('Nicolass-MacBook-Air.local', 8001))
 
 # Make a file-like object out of the connection
 image_connection = image_client_socket.makefile('wb')
