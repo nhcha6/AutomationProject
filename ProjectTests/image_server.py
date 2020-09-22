@@ -4,6 +4,9 @@ import struct
 import cv2
 import numpy as np
 import time
+from eye_tracker import *
+from head_pose_estimation import *
+
 
 def track_color(image, range1, range2):
     # change image to hsv and create mask
@@ -27,8 +30,8 @@ def track_color(image, range1, range2):
 def PID_controller(actual_pos, desire_pos):
     global previous_error
     global previous_time
-    Kp = 0.3
-    Kd = 0.02
+    Kp = 0.5
+    Kd = 0.1
     error = np.subtract(desire_pos, actual_pos)
     current_time = time.time()
     ut = Kp * error
@@ -39,6 +42,130 @@ def PID_controller(actual_pos, desire_pos):
     previous_time = current_time
     return ut
 
+def face_tracker_tensorflow(img):
+    rects = find_faces(img, face_model)
+    ut = [1000, 1000]
+    max_area = 0
+    max_centre = None
+    for rect in rects:
+        x1, y1, x2, y2 = rect
+        area = np.abs((x2-x1)*(y2-y1))
+        if area > max_area:
+            max_area = area
+            cX = int(np.round(0.5 * (x1 + x2)))
+            cY = int(np.round(0.5 * (y1 + y2)))
+            max_centre = (cX, cY)
+        #head_direction(img, rect)
+    if max_centre is not None:
+        cv2.circle(img, max_centre, 5, (0, 0, 255), 4, 3)
+        ut = PID_controller(max_centre, DESIRED_POS)
+
+    return img, ut
+
+def gaze_direction(img, rect):
+    try:
+        shape = detect_marks(img, landmark_model, rect)
+        mask = np.zeros(img.shape[:2], dtype=np.uint8)
+        mask, end_points_left = eye_on_mask(mask, left, shape)
+        mask, end_points_right = eye_on_mask(mask, right, shape)
+        mask = cv2.dilate(mask, kernel, 5)
+
+        eyes = cv2.bitwise_and(img, img, mask=mask)
+        mask = (eyes == [0, 0, 0]).all(axis=2)
+        eyes[mask] = [255, 255, 255]
+        mid = int((shape[42][0] + shape[39][0]) // 2)
+        eyes_gray = cv2.cvtColor(eyes, cv2.COLOR_BGR2GRAY)
+        threshold = cv2.getTrackbarPos('threshold', 'image')
+        _, thresh = cv2.threshold(eyes_gray, threshold, 255, cv2.THRESH_BINARY)
+        thresh = process_thresh(thresh)
+
+        eyeball_pos_left = contouring(thresh[:, 0:mid], mid, img, end_points_left)
+        eyeball_pos_right = contouring(thresh[:, mid:], mid, img, end_points_right, True)
+        #print_eye_pos(img, eyeball_pos_left, eyeball_pos_right)
+        print(eyeball_pos_left)
+        print(eyeball_pos_right)
+        if eyeball_pos_left == eyeball_pos_right and eyeball_pos_left ==1:
+            print('centre')
+    except cv2.error:
+        pass
+
+def head_direction(img, face):
+    marks = detect_marks(img, landmark_model, face)
+    # mark_detector.draw_marks(img, marks, color=(0, 255, 0))
+    image_points = np.array([
+        marks[30],  # Nose tip
+        marks[8],  # Chin
+        marks[36],  # Left eye left corner
+        marks[45],  # Right eye right corne
+        marks[48],  # Left Mouth corner
+        marks[54]  # Right mouth corner
+    ], dtype="double")
+    dist_coeffs = np.zeros((4, 1))  # Assuming no lens distortion
+    (success, rotation_vector, translation_vector) = cv2.solvePnP(model_points, image_points, camera_matrix,
+                                                                  dist_coeffs, flags=cv2.SOLVEPNP_UPNP)
+
+    # Project a 3D point (0, 0, 1000.0) onto the image plane.
+    # We use this to draw a line sticking out of the nose
+
+    (nose_end_point2D, jacobian) = cv2.projectPoints(np.array([(0.0, 0.0, 1000.0)]), rotation_vector,
+                                                     translation_vector, camera_matrix, dist_coeffs)
+
+    for p in image_points:
+        cv2.circle(img, (int(p[0]), int(p[1])), 3, (0, 0, 255), -1)
+
+    p1 = (int(image_points[0][0]), int(image_points[0][1]))
+    p2 = (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
+    x1, x2 = head_pose_points(img, rotation_vector, translation_vector, camera_matrix)
+
+    cv2.line(img, p1, p2, (0, 255, 255), 2)
+    cv2.line(img, tuple(x1), tuple(x2), (255, 255, 0), 2)
+    # for (x, y) in marks:
+    #     cv2.circle(img, (x, y), 4, (255, 255, 0), -1)
+    # cv2.putText(img, str(p1), p1, font, 1, (0, 255, 255), 1)
+    try:
+        m = (p2[1] - p1[1]) / (p2[0] - p1[0])
+        ang1 = int(math.degrees(math.atan(m)))
+    except:
+        ang1 = 90
+
+    try:
+        m = (x2[1] - x1[1]) / (x2[0] - x1[0])
+        ang2 = int(math.degrees(math.atan(-1 / m)))
+    except:
+        ang2 = 90
+
+        # print('div by zero error')
+    if ang1 >= 48:
+        print('Head down')
+        cv2.putText(img, 'Head down', (30, 30), font, 2, (255, 255, 128), 3)
+    elif ang1 <= -48:
+        print('Head up')
+        cv2.putText(img, 'Head up', (30, 30), font, 2, (255, 255, 128), 3)
+
+    if ang2 >= 48:
+        print('Head right')
+        cv2.putText(img, 'Head right', (90, 30), font, 2, (255, 255, 128), 3)
+    elif ang2 <= -48:
+        print('Head left')
+        cv2.putText(img, 'Head left', (90, 30), font, 2, (255, 255, 128), 3)
+
+    cv2.putText(img, str(ang1), tuple(p1), font, 2, (128, 255, 255), 3)
+    cv2.putText(img, str(ang2), tuple(x1), font, 2, (255, 255, 128), 3)
+
+def nothing(x):
+    pass
+
+# prepare face recognition and eye tracking libraries
+face_model = get_face_detector()
+landmark_model = get_landmark_model()
+left = [36, 37, 38, 39, 40, 41]
+right = [42, 43, 44, 45, 46, 47]
+img = np.zeros((480, 640, 3), np.uint8)
+thresh = img.copy()
+cv2.namedWindow('image')
+kernel = np.ones((9, 9), np.uint8)
+cv2.createTrackbar('threshold', 'image', 75, 255, nothing)
+
 # Start a socket listening for connections on 0.0.0.0:8000 (0.0.0.0 means
 # all interfaces)
 image_server_socket = socket.socket()
@@ -47,7 +174,7 @@ image_server_socket.listen(0)
 
 # start new socket to send data back to the client
 result_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-result_server_socket.bind(('0.0.0.0', 8081))
+result_server_socket.bind(('0.0.0.0', 8080))
 result_server_socket.listen(0)
 
 # Accept a single connection and make a file-like object out of it
@@ -79,8 +206,9 @@ try:
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
         ##### COMPUTER VISION #######
-        img, ut = track_color(img, range_1, range_2)
-        print(ut)
+        img, ut = face_tracker_tensorflow(img)
+        #img, ut = track_color(img, range_1, range_2)
+
         ##############################
 
         cv2.imshow("Image", img)
