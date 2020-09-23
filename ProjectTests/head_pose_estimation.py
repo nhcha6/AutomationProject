@@ -22,7 +22,7 @@ def get_2d_points(img, rotation_vector, translation_vector, camera_matrix, val):
     point_3d.append((rear_size, rear_size, rear_depth))
     point_3d.append((rear_size, -rear_size, rear_depth))
     point_3d.append((-rear_size, -rear_size, rear_depth))
-    
+
     front_size = val[2]
     front_depth = val[3]
     point_3d.append((-front_size, -front_size, front_depth))
@@ -30,8 +30,8 @@ def get_2d_points(img, rotation_vector, translation_vector, camera_matrix, val):
     point_3d.append((front_size, front_size, front_depth))
     point_3d.append((front_size, -front_size, front_depth))
     point_3d.append((-front_size, -front_size, front_depth))
-    point_3d = np.array(point_3d, dtype=np.float).reshape(-1, 3)
-    
+    point_3d = np.array(point_3d, dtype=np.float).reshape(-1, 3)    
+
     # Map to 2d img points
     (point_2d, _) = cv2.projectPoints(point_3d,
                                       rotation_vector,
@@ -75,7 +75,7 @@ def draw_annotation_box(img, rotation_vector, translation_vector, camera_matrix,
     None.
 
     """
-    
+
     rear_size = 1
     rear_depth = 0
     front_size = img.shape[1]
@@ -94,7 +94,7 @@ def draw_annotation_box(img, rotation_vector, translation_vector, camera_matrix,
     
 def head_pose_points(img, rotation_vector, translation_vector, camera_matrix):
     """
-    Get the points to estimate head pose sideways    
+    Get the points to estimate head pose sideways
 
     Parameters
     ----------
@@ -111,8 +111,8 @@ def head_pose_points(img, rotation_vector, translation_vector, camera_matrix):
     -------
     (x, y) : tuple
         Coordinates of line to estimate head pose
-
     """
+    
     rear_size = 1
     rear_depth = 0
     front_size = img.shape[1]
@@ -121,7 +121,7 @@ def head_pose_points(img, rotation_vector, translation_vector, camera_matrix):
     point_2d = get_2d_points(img, rotation_vector, translation_vector, camera_matrix, val)
     y = (point_2d[5] + point_2d[8])//2
     x = point_2d[2]
-    
+
     return (x, y)
     
 # face_model = get_face_detector()
