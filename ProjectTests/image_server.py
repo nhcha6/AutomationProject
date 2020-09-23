@@ -4,7 +4,8 @@ import struct
 import cv2
 import numpy as np
 import time
-from eye_tracker import *
+import dlib
+from gaze_tracking import GazeTracking
 from head_pose_estimation import *
 
 
@@ -42,7 +43,7 @@ def PID_controller(actual_pos, desire_pos):
     previous_time = current_time
     return ut
 
-def face_tracker_tensorflow(img):
+def face_tracker_tensorflow(img, gaze):
     rects = find_faces(img, face_model)
     ut = [1000, 1000]
     max_area = 0
@@ -55,39 +56,62 @@ def face_tracker_tensorflow(img):
             cX = int(np.round(0.5 * (x1 + x2)))
             cY = int(np.round(0.5 * (y1 + y2)))
             max_centre = (cX, cY)
+        img = gaze_direction(img, gaze)
         head_direction(img, rect)
     if max_centre is not None:
         cv2.circle(img, max_centre, 5, (0, 0, 255), 4, 3)
         ut = PID_controller(max_centre, DESIRED_POS)
-
     return img, ut
 
-def gaze_direction(img, rect):
-    try:
-        shape = detect_marks(img, landmark_model, rect)
-        mask = np.zeros(img.shape[:2], dtype=np.uint8)
-        mask, end_points_left = eye_on_mask(mask, left, shape)
-        mask, end_points_right = eye_on_mask(mask, right, shape)
-        mask = cv2.dilate(mask, kernel, 5)
+def face_tracker_dlib(img, gaze):
+    gaze.refresh(img)
+    ut = [1000, 1000]
+    max_area = 0
+    max_centre = None
+    for face in gaze.faces:
+        x1 = face.left()
+        x2 = face.right()
+        y1 = face.top()
+        y2 = face.bottom()
+        rect = [x1, y1, x2, y2]
+        area = np.abs((x2 - x1) * (y2 - y1))
+        if area > max_area:
+            max_area = area
+            cX = int(np.round(0.5 * (x1 + x2)))
+            cY = int(np.round(0.5 * (y1 + y2)))
+            max_centre = (cX, cY)
+        head_direction(img, rect)
+    if max_centre is not None:
+        cv2.circle(img, max_centre, 5, (0, 0, 255), 4, 3)
+        ut = PID_controller(max_centre, DESIRED_POS)
+    return img, ut
 
-        eyes = cv2.bitwise_and(img, img, mask=mask)
-        mask = (eyes == [0, 0, 0]).all(axis=2)
-        eyes[mask] = [255, 255, 255]
-        mid = int((shape[42][0] + shape[39][0]) // 2)
-        eyes_gray = cv2.cvtColor(eyes, cv2.COLOR_BGR2GRAY)
-        threshold = cv2.getTrackbarPos('threshold', 'image')
-        _, thresh = cv2.threshold(eyes_gray, threshold, 255, cv2.THRESH_BINARY)
-        thresh = process_thresh(thresh)
+def gaze_direction(frame, gaze):
+    # We send this frame to GazeTracking to analyze it
+    gaze.refresh(frame)
 
-        eyeball_pos_left = contouring(thresh[:, 0:mid], mid, img, end_points_left)
-        eyeball_pos_right = contouring(thresh[:, mid:], mid, img, end_points_right, True)
-        #print_eye_pos(img, eyeball_pos_left, eyeball_pos_right)
-        print(eyeball_pos_left)
-        print(eyeball_pos_right)
-        if eyeball_pos_left == eyeball_pos_right and eyeball_pos_left ==1:
-            print('centre')
-    except cv2.error:
-        pass
+    frame = gaze.annotated_frame()
+    text = ""
+
+    if gaze.is_blinking():
+        text = "Blinking"
+    elif gaze.is_right():
+        text = "Looking right"
+    elif gaze.is_left():
+        text = "Looking left"
+    elif gaze.is_center():
+        text = "Looking center"
+
+    cv2.putText(frame, text, (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
+
+    left_pupil = gaze.pupil_left_coords()
+    right_pupil = gaze.pupil_right_coords()
+    cv2.putText(frame, "Left pupil:  " + str(left_pupil), (90, 130), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
+    cv2.putText(frame, "Right pupil: " + str(right_pupil), (90, 165), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
+
+    return frame
+
+
 
 def head_direction(img, face):
     try:
@@ -155,8 +179,10 @@ def head_direction(img, face):
 
         cv2.putText(img, str(ang1), tuple(p1), font, 2, (128, 255, 255), 3)
         cv2.putText(img, str(ang2), tuple(x1), font, 2, (255, 255, 128), 3)
+
     except cv2.error:
         pass
+
 
 def nothing(x):
     pass
@@ -173,8 +199,6 @@ cv2.namedWindow('image')
 kernel = np.ones((9, 9), np.uint8)
 cv2.createTrackbar('threshold', 'image', 75, 255, nothing)
 # head pose requirements
-face_model = get_face_detector()
-landmark_model = get_landmark_model()
 size = img.shape
 font = cv2.FONT_HERSHEY_SIMPLEX
 # 3D model points.
@@ -203,7 +227,7 @@ image_server_socket.listen(0)
 
 # start new socket to send data back to the client
 result_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-result_server_socket.bind(('0.0.0.0', 8081))
+result_server_socket.bind(('0.0.0.0', 8080))
 result_server_socket.listen(0)
 
 # Accept a single connection and make a file-like object out of it
@@ -216,6 +240,8 @@ range_2 = (180, 230, 150)
 DESIRED_POS = (320, 240)  # centre of screen
 previous_error = None
 previous_time = None
+
+gaze = GazeTracking()
 
 try:
     while True:
@@ -235,9 +261,8 @@ try:
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
         ##### COMPUTER VISION #######
-        img, ut = face_tracker_tensorflow(img)
+        img, ut = face_tracker_tensorflow(img, gaze)
         #img, ut = track_color(img, range_1, range_2)
-
         ##############################
 
         cv2.imshow("Image", img)
