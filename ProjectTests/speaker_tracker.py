@@ -25,13 +25,14 @@ class SpeakerTracker(object):
         self.img = None
         self.size = None
         self.ut = None
-        self.actual_pos = None
         self.faces = None
         self.track_face = None
+        self.new_faces = []
 
     def refresh(self, image):
         self.img = image
         self.size = image.shape
+        self.track_face = None
         self.ut = [1000, 1000]
         self.new_face_tracker()
 
@@ -55,9 +56,19 @@ class SpeakerTracker(object):
             self.PID_controller()
 
     def new_face_tracker(self):
+        # get faces
         self.faces = find_faces(self.img, self.face_model)
+        # run head_direction analysis on faces
         self.head_direction()
-        self.biggest_face()
+        # if one face has been isolated track_face will not be None and we call the PID controller and return
+        if self.track_face:
+            self.PID_controller()
+            return
+        # We get to here with either multiple faces or none. If multiple split based on size.
+        if self.faces:
+            self.biggest_face()
+            self.track_face = self.faces[0]
+            self.PID_controller()
 
     def biggest_face(self):
         max_face = None
@@ -69,17 +80,19 @@ class SpeakerTracker(object):
                 max_area = area
                 cX = int(np.round(0.5 * (x1 + x2)))
                 cY = int(np.round(0.5 * (y1 + y2)))
-                max_face = [face]
+                max_face = face
         if max_face is not None:
-            self.faces = max_face
+            self.faces = [max_face]
         self.highlight_faces("red")
 
     def highlight_faces(self, colour):
         # select colour
         if colour == "green":
             colour_bgr = (0, 255, 0)
+            radius = 3
         if colour == "red":
             colour_bgr = (0, 0, 255)
+            radius = 6
         if colour == "blue":
             colour_bgr = (255, 0, 0)
 
@@ -87,7 +100,7 @@ class SpeakerTracker(object):
             x1, y1, x2, y2 = face
             cX = int(np.round(0.5 * (x1 + x2)))
             cY = int(np.round(0.5 * (y1 + y2)))
-            cv2.circle(self.img, (cX, cY), 5, colour_bgr, 4, 3)
+            cv2.circle(self.img, (cX, cY), radius, colour_bgr, 4, 3)
 
 
     def gaze_direction(self):
@@ -132,7 +145,6 @@ class SpeakerTracker(object):
              [0, 0, 1]], dtype="double"
         )
 
-        new_faces = []
         for face in self.faces:
             try:
                 marks = detect_marks(self.img, self.landmark_model, face)
@@ -197,7 +209,7 @@ class SpeakerTracker(object):
 
                 if ang2 <= 45:
                     if ang2 >= -45:
-                        new_faces.append(face)
+                        self.new_faces.append(face)
 
                 #cv2.putText(self.img, str(ang1), tuple(p1), font, 2, (128, 255, 255), 3)
                 #cv2.putText(self.img, str(ang2), tuple(x1), font, 2, (255, 255, 128), 3)
@@ -205,11 +217,26 @@ class SpeakerTracker(object):
             except cv2.error:
                 pass
 
-        self.faces = new_faces
-        self.highlight_faces("green")
+        # update faces if there is a at least one person facing the camera.
+        if self.new_faces:
+            self.faces = self.new_faces
+            self.new_faces = []
+            self.highlight_faces("green")
+        # if no faces we wish to update faces to be hold only the largest face.
+        else:
+            self.biggest_face()
+
+        # if only one face left, add it to track_face
+        if len(self.faces)==1:
+            self.track_face = self.faces[0]
+
 
     def PID_controller(self):
-        error = np.subtract(self.desire_pos, self.actual_pos)
+        x1, y1, x2, y2 = self.track_face
+        cX = int(np.round(0.5 * (x1 + x2)))
+        cY = int(np.round(0.5 * (y1 + y2)))
+        actual_pos = (cX, cY)
+        error = np.subtract(self.desire_pos, actual_pos)
         current_time = time.time()
         self.ut = self.Kp * error
         if self.previous_error is not None:
