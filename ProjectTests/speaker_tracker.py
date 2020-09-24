@@ -4,6 +4,7 @@ import time
 import dlib
 from gaze_tracking import GazeTracking
 from head_pose_estimation import *
+from headpose import HeadposeDetection
 
 class SpeakerTracker(object):
     def __init__(self):
@@ -20,6 +21,7 @@ class SpeakerTracker(object):
 
         # declare gaze object
         self.gaze = GazeTracking()
+        self.headpose = HeadposeDetection()
 
         # variables to be updated each image
         self.img = None
@@ -34,26 +36,14 @@ class SpeakerTracker(object):
         self.size = image.shape
         self.track_face = None
         self.ut = [1000, 1000]
-        self.new_face_tracker()
+        self.face_tracker()
 
     def face_tracker(self):
-        rects = find_faces(self.img, self.face_model)
-        max_centre = None
-        max_area = 0
-        for rect in rects:
-            x1, y1, x2, y2 = rect
-            area = np.abs((x2-x1)*(y2-y1))
-            if area > max_area:
-                max_area = area
-                cX = int(np.round(0.5 * (x1 + x2)))
-                cY = int(np.round(0.5 * (y1 + y2)))
-                max_centre = (cX, cY)
-            self.gaze_direction()
-            self.head_direction(rect)
-        if max_centre is not None:
-            self.actual_pos = max_centre
-            cv2.circle(self.img, max_centre, 5, (0, 0, 255), 4, 3)
-            self.PID_controller()
+        # get faces
+        self.faces = find_faces(self.img, self.face_model)
+
+        self.img, new_faces = self.headpose.process_image(self.img, self.faces)
+        print(new_faces)
 
     def new_face_tracker(self):
         # get faces
