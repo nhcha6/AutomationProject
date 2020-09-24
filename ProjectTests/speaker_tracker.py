@@ -26,12 +26,14 @@ class SpeakerTracker(object):
         self.size = None
         self.ut = None
         self.actual_pos = None
+        self.faces = None
+        self.track_face = None
 
     def refresh(self, image):
         self.img = image
         self.size = image.shape
         self.ut = [1000, 1000]
-        self.face_tracker()
+        self.new_face_tracker()
 
     def face_tracker(self):
         rects = find_faces(self.img, self.face_model)
@@ -51,6 +53,42 @@ class SpeakerTracker(object):
             self.actual_pos = max_centre
             cv2.circle(self.img, max_centre, 5, (0, 0, 255), 4, 3)
             self.PID_controller()
+
+    def new_face_tracker(self):
+        self.faces = find_faces(self.img, self.face_model)
+        self.head_direction()
+        self.biggest_face()
+
+    def biggest_face(self):
+        max_face = None
+        max_area = 0
+        for face in self.faces:
+            x1, y1, x2, y2 = face
+            area = np.abs((x2 - x1) * (y2 - y1))
+            if area > max_area:
+                max_area = area
+                cX = int(np.round(0.5 * (x1 + x2)))
+                cY = int(np.round(0.5 * (y1 + y2)))
+                max_face = [face]
+        if max_face is not None:
+            self.faces = max_face
+        self.highlight_faces("red")
+
+    def highlight_faces(self, colour):
+        # select colour
+        if colour == "green":
+            colour_bgr = (0, 255, 0)
+        if colour == "red":
+            colour_bgr = (0, 0, 255)
+        if colour == "blue":
+            colour_bgr = (255, 0, 0)
+
+        for face in self.faces:
+            x1, y1, x2, y2 = face
+            cX = int(np.round(0.5 * (x1 + x2)))
+            cY = int(np.round(0.5 * (y1 + y2)))
+            cv2.circle(self.img, (cX, cY), 5, colour_bgr, 4, 3)
+
 
     def gaze_direction(self):
         # We send this frame to GazeTracking to analyze it
@@ -75,7 +113,7 @@ class SpeakerTracker(object):
         cv2.putText(self.img, "Left pupil:  " + str(left_pupil), (90, 130), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
         cv2.putText(self.img, "Right pupil: " + str(right_pupil), (90, 165), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
 
-    def head_direction(self, face):
+    def head_direction(self):
         # head pose requirements
         font = cv2.FONT_HERSHEY_SIMPLEX
         model_points = np.array([
@@ -93,74 +131,82 @@ class SpeakerTracker(object):
              [0, focal_length, center[1]],
              [0, 0, 1]], dtype="double"
         )
-        try:
-            marks = detect_marks(self.img, self.landmark_model, face)
-            # mark_detector.draw_marks(img, marks, color=(0, 255, 0))
-            image_points = np.array([
-                marks[30],  # Nose tip
-                marks[8],  # Chin
-                marks[36],  # Left eye left corner
-                marks[45],  # Right eye right corne
-                marks[48],  # Left Mouth corner
-                marks[54]  # Right mouth corner
-            ], dtype="double")
-            image_points_reshape = np.ascontiguousarray(image_points[:, :2]).reshape((image_points.shape[0], 1, 2))
 
-
-            dist_coeffs = np.zeros((4, 1))  # Assuming no lens distortion
-            (success, rotation_vector, translation_vector) = cv2.solvePnP(model_points, image_points_reshape, camera_matrix,
-                                                                          dist_coeffs, flags=cv2.SOLVEPNP_UPNP)
-
-            # Project a 3D point (0, 0, 1000.0) onto the image plane.
-            # We use this to draw a line sticking out of the nose
-
-            (nose_end_point2D, jacobian) = cv2.projectPoints(np.array([(0.0, 0.0, 1000.0)]), rotation_vector,
-                                                             translation_vector, camera_matrix, dist_coeffs)
-
-            for p in image_points:
-                cv2.circle(self.img, (int(p[0]), int(p[1])), 3, (0, 0, 255), -1)
-
-            p1 = (int(image_points[0][0]), int(image_points[0][1]))
-            p2 = (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
-            x1, x2 = head_pose_points(self.img, rotation_vector, translation_vector, camera_matrix)
-
-            cv2.line(self.img, p1, p2, (0, 255, 255), 2)
-            cv2.line(self.img, tuple(x1), tuple(x2), (255, 255, 0), 2)
-            # for (x, y) in marks:
-            #     cv2.circle(img, (x, y), 4, (255, 255, 0), -1)
-            # cv2.putText(img, str(p1), p1, font, 1, (0, 255, 255), 1)
+        new_faces = []
+        for face in self.faces:
             try:
-                m = (p2[1] - p1[1]) / (p2[0] - p1[0])
-                ang1 = int(math.degrees(math.atan(m)))
-            except:
-                ang1 = 90
+                marks = detect_marks(self.img, self.landmark_model, face)
+                # mark_detector.draw_marks(img, marks, color=(0, 255, 0))
+                image_points = np.array([
+                    marks[30],  # Nose tip
+                    marks[8],  # Chin
+                    marks[36],  # Left eye left corner
+                    marks[45],  # Right eye right corne
+                    marks[48],  # Left Mouth corner
+                    marks[54]  # Right mouth corner
+                ], dtype="double")
+                image_points_reshape = np.ascontiguousarray(image_points[:, :2]).reshape((image_points.shape[0], 1, 2))
 
-            try:
-                m = (x2[1] - x1[1]) / (x2[0] - x1[0])
-                ang2 = int(math.degrees(math.atan(-1 / m)))
-            except:
-                ang2 = 90
 
-                # print('div by zero error')
-            if ang1 >= 48:
-                print('Head down')
-                cv2.putText(self.img, 'Head down', (30, 30), font, 2, (255, 255, 128), 3)
-            elif ang1 <= -48:
-                print('Head up')
-                cv2.putText(self.img, 'Head up', (30, 30), font, 2, (255, 255, 128), 3)
+                dist_coeffs = np.zeros((4, 1))  # Assuming no lens distortion
+                (success, rotation_vector, translation_vector) = cv2.solvePnP(model_points, image_points_reshape, camera_matrix,
+                                                                              dist_coeffs, flags=cv2.SOLVEPNP_UPNP)
 
-            if ang2 >= 48:
-                print('Head right')
-                cv2.putText(self.img, 'Head right', (90, 30), font, 2, (255, 255, 128), 3)
-            elif ang2 <= -48:
-                print('Head left')
-                cv2.putText(self.img, 'Head left', (90, 30), font, 2, (255, 255, 128), 3)
+                # Project a 3D point (0, 0, 1000.0) onto the image plane.
+                # We use this to draw a line sticking out of the nose
 
-            cv2.putText(self.img, str(ang1), tuple(p1), font, 2, (128, 255, 255), 3)
-            cv2.putText(self.img, str(ang2), tuple(x1), font, 2, (255, 255, 128), 3)
+                (nose_end_point2D, jacobian) = cv2.projectPoints(np.array([(0.0, 0.0, 1000.0)]), rotation_vector,
+                                                                 translation_vector, camera_matrix, dist_coeffs)
 
-        except cv2.error:
-            pass
+                # for p in image_points:
+                #     cv2.circle(self.img, (int(p[0]), int(p[1])), 3, (0, 0, 255), -1)
+
+                p1 = (int(image_points[0][0]), int(image_points[0][1]))
+                p2 = (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
+                x1, x2 = head_pose_points(self.img, rotation_vector, translation_vector, camera_matrix)
+
+                #cv2.line(self.img, p1, p2, (0, 255, 255), 2)
+                #cv2.line(self.img, tuple(x1), tuple(x2), (255, 255, 0), 2)
+
+                try:
+                    m = (p2[1] - p1[1]) / (p2[0] - p1[0])
+                    ang1 = int(math.degrees(math.atan(m)))
+                except:
+                    ang1 = 90
+
+                try:
+                    m = (x2[1] - x1[1]) / (x2[0] - x1[0])
+                    ang2 = int(math.degrees(math.atan(-1 / m)))
+                except:
+                    ang2 = 90
+
+                # uncomment to see visual representation of calculated angles
+                # if ang1 >= 48:
+                #     print('Head down')
+                #     cv2.putText(self.img, 'Head down', (30, 30), font, 2, (255, 255, 128), 3)
+                # elif ang1 <= -48:
+                #     print('Head up')
+                #     cv2.putText(self.img, 'Head up', (30, 30), font, 2, (255, 255, 128), 3)
+                #
+                # if ang2 >= 48:
+                #     print('Head right')
+                #     cv2.putText(self.img, 'Head right', (90, 30), font, 2, (255, 255, 128), 3)
+                # elif ang2 <= -48:
+                #     print('Head left')
+                #     cv2.putText(self.img, 'Head left', (90, 30), font, 2, (255, 255, 128), 3)
+
+                if ang2 <= 45:
+                    if ang2 >= -45:
+                        new_faces.append(face)
+
+                #cv2.putText(self.img, str(ang1), tuple(p1), font, 2, (128, 255, 255), 3)
+                #cv2.putText(self.img, str(ang2), tuple(x1), font, 2, (255, 255, 128), 3)
+
+            except cv2.error:
+                pass
+
+        self.faces = new_faces
+        self.highlight_faces("green")
 
     def PID_controller(self):
         error = np.subtract(self.desire_pos, self.actual_pos)

@@ -14,6 +14,7 @@ image_server_socket.listen(0)
 # start new socket to send data back to the client
 result_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 result_server_socket.bind(('0.0.0.0', 8080))
+
 result_server_socket.listen(0)
 
 # Accept a single connection and make a file-like object out of it
