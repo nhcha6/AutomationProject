@@ -3,7 +3,6 @@ import numpy as np
 import time
 import dlib
 from gaze_tracking import GazeTracking
-from head_pose_estimation import *
 from headpose import HeadposeDetection
 
 class SpeakerTracker(object):
@@ -36,20 +35,13 @@ class SpeakerTracker(object):
         self.size = image.shape
         self.track_face = None
         self.ut = [1000, 1000]
-        self.face_tracker()
-
-    def face_tracker(self):
-        # get faces
-        self.faces = find_faces(self.img, self.face_model)
-
-        self.img, new_faces = self.headpose.process_image(self.img, self.faces)
-        print(new_faces)
+        self.new_face_tracker()
 
     def new_face_tracker(self):
         # get faces
         self.faces = find_faces(self.img, self.face_model)
         # run head_direction analysis on faces
-        self.head_direction()
+        self.head_pose_new()
         # if one face has been isolated track_face will not be None and we call the PID controller and return
         if self.track_face:
             self.PID_controller()
@@ -59,6 +51,21 @@ class SpeakerTracker(object):
             self.biggest_face()
             self.track_face = self.faces[0]
             self.PID_controller()
+
+    def head_pose_new(self):
+        self.img, self.new_faces = self.headpose.process_image(self.img, False)
+        # update faces if there is a at least one person facing the camera.
+        if self.new_faces:
+            self.faces = self.new_faces
+            self.new_faces = []
+            self.highlight_faces("green")
+        # if no faces we wish to update faces to be hold only the largest face.
+        else:
+            self.biggest_face()
+
+        # if only one face left, add it to track_face
+        if len(self.faces) == 1:
+            self.track_face = self.faces[0]
 
     def biggest_face(self):
         max_face = None
@@ -116,7 +123,7 @@ class SpeakerTracker(object):
         cv2.putText(self.img, "Left pupil:  " + str(left_pupil), (90, 130), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
         cv2.putText(self.img, "Right pupil: " + str(right_pupil), (90, 165), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
 
-    def head_direction(self):
+    def old_head_pose(self):
         # head pose requirements
         font = cv2.FONT_HERSHEY_SIMPLEX
         model_points = np.array([
