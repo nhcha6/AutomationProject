@@ -43,25 +43,38 @@ class GazeTracking(object):
     def _analyze(self):
         """Detects the face and initialize Eye objects"""
         frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-        self.faces = self._face_detector(frame)
+        new_faces = []
 
-        try:
-            landmarks = self._predictor(frame, self.faces[0])
-            self.eye_left = Eye(frame, landmarks, 0, self.calibration)
-            self.eye_right = Eye(frame, landmarks, 1, self.calibration)
+        for face in self.faces:
+            face = dlib.rectangle(face[0],face[1],face[2],face[3])
+            try:
+                landmarks = self._predictor(frame, face)
+                self.eye_left = Eye(frame, landmarks, 0, self.calibration)
+                self.eye_right = Eye(frame, landmarks, 1, self.calibration)
 
-        except IndexError:
-            self.eye_left = None
-            self.eye_right = None
+                ratio = self.horizontal_ratio()
+                if ratio and 0.6<ratio and ratio<0.8:
+                    new_faces.append([face.left(), face.top(), face.right(), face.bottom()])
 
-    def refresh(self, frame):
+            except IndexError:
+                self.eye_left = None
+                self.eye_right = None
+
+        return new_faces
+
+
+
+    def refresh(self, frame, faces):
+        print("REFRESH")
         """Refreshes the frame and analyzes it.
 
         Arguments:
             frame (numpy.ndarray): The frame to analyze
         """
         self.frame = frame
-        self._analyze()
+        self.faces = faces
+        faces = self._analyze()
+        return faces
 
     def pupil_left_coords(self):
         """Returns the coordinates of the left pupil"""

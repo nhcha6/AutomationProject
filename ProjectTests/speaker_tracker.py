@@ -3,6 +3,7 @@ import numpy as np
 import time
 import dlib
 from gaze_tracking import GazeTracking
+from head_pose_estimation import *
 from headpose import HeadposeDetection
 
 class SpeakerTracker(object):
@@ -42,11 +43,20 @@ class SpeakerTracker(object):
         self.faces = find_faces(self.img, self.face_model)
         # run head_direction analysis on faces
         self.head_pose_new()
+
+        # if one face has been isolated track_face will not be None and we call the PID controller and return
+        #if self.track_face:
+        #    self.PID_controller()
+        #    return
+
+        self.gaze_direction()
+
         # if one face has been isolated track_face will not be None and we call the PID controller and return
         if self.track_face:
             self.PID_controller()
             return
-        # We get to here with either multiple faces or none. If multiple split based on size.
+
+        # We get to here with either multiple faces. If multiple split based on size.
         if self.faces:
             self.biggest_face()
             self.track_face = self.faces[0]
@@ -59,6 +69,7 @@ class SpeakerTracker(object):
             self.faces = self.new_faces
             self.new_faces = []
             self.highlight_faces("green")
+
         # if no faces we wish to update faces to be hold only the largest face.
         else:
             self.biggest_face()
@@ -66,6 +77,7 @@ class SpeakerTracker(object):
         # if only one face left, add it to track_face
         if len(self.faces) == 1:
             self.track_face = self.faces[0]
+
 
     def biggest_face(self):
         max_face = None
@@ -92,6 +104,7 @@ class SpeakerTracker(object):
             radius = 6
         if colour == "blue":
             colour_bgr = (255, 0, 0)
+            radius = 9
 
         for face in self.faces:
             x1, y1, x2, y2 = face
@@ -101,27 +114,46 @@ class SpeakerTracker(object):
 
 
     def gaze_direction(self):
+        print("GAZEDIRECTION")
         # We send this frame to GazeTracking to analyze it
-        self.gaze.refresh(self.img)
+        self.new_faces = self.gaze.refresh(self.img, self.faces)
 
-        self.img = self.gaze.annotated_frame()
-        text = ""
+        # update faces if there is a at least one person facing the camera.
+        if self.new_faces:
+            self.faces = self.new_faces
+            self.new_faces = []
+            self.highlight_faces("blue")
 
-        if self.gaze.is_blinking():
-            text = "Blinking"
-        elif self.gaze.is_right():
-            text = "Looking right"
-        elif self.gaze.is_left():
-            text = "Looking left"
-        elif self.gaze.is_center():
-            text = "Looking center"
+        # if no faces we wish to update faces to be hold only the largest face.
+        else:
+            self.biggest_face()
 
-        cv2.putText(self.img, text, (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
+        # if only one face left, add it to track_face
+        if len(self.faces) == 1:
+            self.track_face = self.faces[0]
 
-        left_pupil = self.gaze.pupil_left_coords()
-        right_pupil = self.gaze.pupil_right_coords()
-        cv2.putText(self.img, "Left pupil:  " + str(left_pupil), (90, 130), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
-        cv2.putText(self.img, "Right pupil: " + str(right_pupil), (90, 165), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
+        #self.img = self.gaze.annotated_frame()
+
+        #ratio = str(self.gaze.horizontal_ratio())
+        #cv2.putText(self.img, ratio, (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
+
+        # text = ""
+        #
+        # if self.gaze.is_blinking():
+        #     text = "Blinking"
+        # elif self.gaze.is_right():
+        #     text = "Looking right"
+        # elif self.gaze.is_left():
+        #     text = "Looking left"
+        # elif self.gaze.is_center():
+        #     text = "Looking center"
+        #
+        # cv2.putText(self.img, text, (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
+        #
+        # left_pupil = self.gaze.pupil_left_coords()
+        # right_pupil = self.gaze.pupil_right_coords()
+        # cv2.putText(self.img, "Left pupil:  " + str(left_pupil), (90, 130), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
+        # cv2.putText(self.img, "Right pupil: " + str(right_pupil), (90, 165), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
 
     def old_head_pose(self):
         # head pose requirements
