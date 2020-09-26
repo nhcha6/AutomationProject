@@ -13,12 +13,16 @@ class GazeTracking(object):
     and pupils and allows to know if the eyes are open or closed
     """
 
-    def __init__(self):
+    def __init__(self, lower, upper):
         self.frame = None
         self.faces = None
         self.eye_left = None
         self.eye_right = None
         self.calibration = Calibration()
+
+        # hyper paramters for centred gaze
+        self.lower_ratio = lower
+        self.upper_ratio = upper
 
         # _face_detector is used to detect faces
         self._face_detector = dlib.get_frontal_face_detector()
@@ -53,7 +57,7 @@ class GazeTracking(object):
                 self.eye_right = Eye(frame, landmarks, 1, self.calibration)
 
                 ratio = self.horizontal_ratio()
-                if ratio and 0.6<ratio and ratio<0.8:
+                if ratio and self.lower_ratio < ratio and ratio < self.upper_ratio:
                     new_faces.append([face.left(), face.top(), face.right(), face.bottom()])
 
             except IndexError:
@@ -62,10 +66,7 @@ class GazeTracking(object):
 
         return new_faces
 
-
-
     def refresh(self, frame, faces):
-        print("REFRESH")
         """Refreshes the frame and analyzes it.
 
         Arguments:

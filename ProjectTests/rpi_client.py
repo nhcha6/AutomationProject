@@ -46,7 +46,7 @@ class thread(threading.Thread):
         try:
             # create socket
             result_client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            result_client_socket.connect(('Nicolass-MacBook-Air.local', 8080))
+            result_client_socket.connect(('Nicolass-MacBook-Air.local', 8081))
 
             # declare servo control
             pi = pigpio.pi()  # connect to local Pi.

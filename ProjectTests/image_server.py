@@ -13,7 +13,7 @@ image_server_socket.listen(0)
 
 # start new socket to send data back to the client
 result_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-result_server_socket.bind(('0.0.0.0', 8080))
+result_server_socket.bind(('0.0.0.0', 8081))
 
 result_server_socket.listen(0)
 
@@ -22,6 +22,7 @@ image_connection = image_server_socket.accept()[0].makefile('rb')
 result_connection = result_server_socket.accept()[0]
 
 speaker_tracker = SpeakerTracker()
+
 
 try:
     while True:

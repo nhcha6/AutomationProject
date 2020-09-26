@@ -63,7 +63,7 @@ class HeadposeDetection():
     ]
 
 
-    def __init__(self, lm_type=1, predictor="model/shape_predictor_68_face_landmarks.dat", verbose=False):
+    def __init__(self, angle, lm_type=1, predictor="model/shape_predictor_68_face_landmarks.dat", verbose=False):
         self.bbox_detector = dlib.get_frontal_face_detector()        
         self.landmark_predictor = dlib.shape_predictor(predictor)
 
@@ -72,9 +72,7 @@ class HeadposeDetection():
 
         self.v = verbose
 
-        # define angle limits to define centre
-        self.angle_limit = 25
-
+        self.angle_limit = angle
 
     def to_numpy(self, landmarks):
         coords = []
@@ -83,29 +81,36 @@ class HeadposeDetection():
         return np.array(coords).astype(np.int)
 
     def get_landmarks(self, im, face):
-        # Detect bounding boxes of faces
-        t.tic('bb')
-            
-        # if self.v:
-        #     print(', bb: %.2f' % t.toc('bb'), end='ms')
+        # extract roi of face
+        x1 = face.left()
+        y1 = face.top()
+        x2 = face.right()
+        y2 = face.bottom()
+        roi = im[y1:y2, x1:x2]
+        rects = self.bbox_detector(roi, 0)
 
-        # # convert face to rect
-        # x1, y1, x2, y2 = face
-        # rect = dlib.rectangle(x1, y1, x2, y2)
+        if rects:
+            # Detect bounding boxes of faces
+            t.tic('bb')
 
-        # Detect landmark of first face
-        t.tic('lm')
-        landmarks_2d = self.landmark_predictor(im, face)
+            # if self.v:
+            #     print(', bb: %.2f' % t.toc('bb'), end='ms')
 
-        rect = [face.left(), face.top(), face.right(), face.bottom()]
+            # Detect landmark of face
+            t.tic('lm')
+            landmarks_2d = self.landmark_predictor(im, face)
 
-        # Choose specific landmarks corresponding to 3D facial model
-        landmarks_2d = self.to_numpy(landmarks_2d)
+            rect = [face.left(), face.top(), face.right(), face.bottom()]
 
-        # if self.v:
-            #print(', lm: %.2f' % t.toc('lm'), end='ms')
+            # Choose specific landmarks corresponding to 3D facial model
+            landmarks_2d = self.to_numpy(landmarks_2d)
 
-        return landmarks_2d.astype(np.double), rect
+            # if self.v:
+                #print(', lm: %.2f' % t.toc('lm'), end='ms')
+            return landmarks_2d.astype(np.double), rect
+
+        else:
+            return None, None
 
 
     def get_headpose(self, im, landmarks_2d, verbose=False):
@@ -122,7 +127,8 @@ class HeadposeDetection():
         dist_coeffs = np.zeros((4,1)) 
 
         # Find rotation, translation
-        (success, rotation_vector, translation_vector) = cv2.solvePnP(self.landmarks_3d, landmarks_2d, camera_matrix, dist_coeffs)
+        landmarks_2d_reshape = np.ascontiguousarray(landmarks_2d[:, :2]).reshape((landmarks_2d.shape[0], 1, 2))
+        (success, rotation_vector, translation_vector) = cv2.solvePnP(self.landmarks_3d, landmarks_2d_reshape, camera_matrix, dist_coeffs)
         
         if verbose:
             print("Camera Matrix:\n {0}".format(camera_matrix))
@@ -162,16 +168,24 @@ class HeadposeDetection():
         return res
     
     # return image and angles
-    def process_image(self, im, draw=True, ma=3):
+    def process_image(self, im, faces, draw=True, ma=3):
         # landmark Detection
         im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-        rects = self.bbox_detector(im_gray, 0)
+        # rects = self.bbox_detector(im_gray, 0)
         new_faces = []
-        for rect in rects:
+        for face in faces:
+            # x1, y1, x2, y2 = face
+            # roi = im_gray[y1:y2, x1:x2]
+            rect = dlib.rectangle(face[0], face[1], face[2], face[3])
             landmarks_2d, bbox = self.get_landmarks(im_gray, rect)
+
+            if not bbox:
+                continue
+
             # Headpose Detection
             t.tic('hp')
             rvec, tvec, cm, dc = self.get_headpose(im, landmarks_2d)
+
             # if self.v:
             #     print(', hp: %.2f' % t.toc('hp'), end='ms')
 
