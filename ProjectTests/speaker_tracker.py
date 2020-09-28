@@ -1,10 +1,12 @@
-import cv2
-import numpy as np
+#import cv2
+#import numpy as np
 import time
-import dlib
+#import dlib
 from gaze_tracking import GazeTracking
 from head_pose_estimation import *
 from headpose import HeadposeDetection
+from compare import *
+import copy
 
 class SpeakerTracker(object):
     def __init__(self):
@@ -29,6 +31,7 @@ class SpeakerTracker(object):
         self.gaze = GazeTracking(self.gaze_lower_ratio, self.gaze_upper_ratio)
         self.headpose = HeadposeDetection(self.headpose_angle_limit)
         self.previous_speaker_data = []
+        self.previous_img_data = []
 
         # variables to be updated each image
         self.img = None
@@ -42,6 +45,7 @@ class SpeakerTracker(object):
 
     def refresh(self, image):
         self.img = image
+        self.orig_img = copy.deepcopy(image)
         self.size = image.shape
         self.track_face = None
         self.speaker_dict = None
@@ -85,8 +89,10 @@ class SpeakerTracker(object):
                     self.speaker_dict['face'].append(face)
 
         self.previous_speaker_data.insert(0, self.speaker_dict)
+        self.previous_img_data.insert(0, self.orig_img)
         if len(self.previous_speaker_data) > self.num_previous:
             self.previous_speaker_data.pop()
+            self.previous_img_data.pop()
 
     def summarise_frame(self):
         for key, value in self.speaker_dict.items():
@@ -166,3 +172,27 @@ class SpeakerTracker(object):
             self.ut += self.Kd * derivative
         self.previous_error = error
         self.previous_time = current_time
+
+    def extract_faces(self):
+        # print(self.previous_speaker_data)
+        # print(self.previous_img_data)
+
+        counter = 0
+
+        first_face = None
+        flag = False
+
+        for i in range(len(self.previous_speaker_data)):
+            image = self.previous_img_data[i]
+            for key, value in self.previous_speaker_data[i].items():
+                for face in value:
+                    counter += 1
+                    x1, y1, x2, y2 = face
+                    roi = image[y1:y2, x1:x2]
+                    # cv2.imwrite("faces/image" + str(counter) + ".jpg", roi)
+                    if flag:
+                        d = getRep(first_face) - getRep(roi)
+                        print(np.dot(d,d))
+                    else:
+                        flag = True
+                        first_face = roi
