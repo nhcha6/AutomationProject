@@ -36,6 +36,7 @@ class SpeakerTracker(object):
         self.gaze = GazeTracking(self.gaze_lower_ratio, self.gaze_upper_ratio)
         self.headpose = HeadposeDetection(self.headpose_angle_limit)
         self.faces_df = pd.DataFrame(columns=['faces', 'landmarks', 'priority', 'attention_score'])
+        self.track_index = None
 
         # variables to be updated each image
         self.img = None
@@ -77,7 +78,9 @@ class SpeakerTracker(object):
 
         # find the face to track
         self.attention_score()
-        self.find_track_face_old()
+
+        # find track face
+        self.find_track_face()
 
         # run PID controller
         if self.track_face:
@@ -204,10 +207,33 @@ class SpeakerTracker(object):
                     cv2.putText(self.img, str(attention_score), (face[0], face[1]), cv2.FONT_HERSHEY_DUPLEX, 1.6, (0, 0, 255), 2)
                     break
 
+    def find_track_face(self):
+        max_score = 0
+        if self.track_index not in self.faces_df.index:
+            self.track_index = None
+
+        if self.track_index is not None:
+            max_score = self.faces_df["attention_score"][self.track_index]
+
+        for index, row in self.faces_df.iterrows():
+            if self.faces_df["attention_score"][index] > max_score:
+                max_score = self.faces_df["attention_score"][index]
+                self.track_index = index
+
+        if self.track_index is not None:
+            for face in self.faces_df["faces"][self.track_index]:
+                print(face)
+                if face:
+                    self.track_face = face
+                    break
+
+        # print(max_score)
+        # print(self.track_index)
+        # print(self.track_face)
+
     def summarise_frame(self):
         for key, value in self.speaker_dict.items():
             self.highlight_faces(key, value)
-
 
     def find_track_face_old(self):
         if self.gaze_faces:
