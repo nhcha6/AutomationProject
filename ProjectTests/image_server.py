@@ -5,15 +5,18 @@ import cv2
 import numpy as np
 from speaker_tracker import SpeakerTracker
 
+image_port = 8001
+result_port = 8080
+
 # Start a socket listening for connections on 0.0.0.0:8000 (0.0.0.0 means
 # all interfaces)
 image_server_socket = socket.socket()
-image_server_socket.bind(('0.0.0.0', 8001))
+image_server_socket.bind(('0.0.0.0', image_port))
 image_server_socket.listen(0)
 
 # start new socket to send data back to the client
 result_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-result_server_socket.bind(('0.0.0.0', 8080))
+result_server_socket.bind(('0.0.0.0', result_port))
 
 result_server_socket.listen(0)
 

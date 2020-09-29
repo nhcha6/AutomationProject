@@ -7,6 +7,7 @@ from head_pose_estimation import *
 from headpose import HeadposeDetection
 from compare import *
 import copy
+import pandas as pd
 
 class SpeakerTracker(object):
     def __init__(self):
@@ -26,12 +27,24 @@ class SpeakerTracker(object):
         self.gaze_lower_ratio = 0.6
         self.gaze_upper_ratio = 0.8
         self.num_previous = 5
+        self.required_sim = 1
 
         # declare gaze object
         self.gaze = GazeTracking(self.gaze_lower_ratio, self.gaze_upper_ratio)
         self.headpose = HeadposeDetection(self.headpose_angle_limit)
         self.previous_speaker_data = []
         self.previous_img_data = []
+
+        # a = []
+        # b = []
+        # c = []
+        # for i in range(self.num_previous):
+        #     a.append([])
+        #     b.append([])
+        #     c.append([])
+        # empty_data = [[a,b,c]]
+        # self.faces_df = pd.DataFrame(empty_data, columns=['faces', 'landmarks', 'priority'])
+        self.faces_df = pd.DataFrame(columns=['faces', 'landmarks', 'priority'])
 
         # variables to be updated each image
         self.img = None
@@ -65,6 +78,9 @@ class SpeakerTracker(object):
         # convert face lists to a dictionary summarising the data
         self.summarise_speaker_data()
 
+        # update pandas df with new faces
+        self.update_pandas_faces()
+
         # summarise the speaker details on the frame
         self.summarise_frame()
 
@@ -88,11 +104,103 @@ class SpeakerTracker(object):
                 if face not in self.speaker_dict['gaze']:
                     self.speaker_dict['face'].append(face)
 
+    def update_pandas_faces(self):
         self.previous_speaker_data.insert(0, self.speaker_dict)
         self.previous_img_data.insert(0, self.orig_img)
         if len(self.previous_speaker_data) > self.num_previous:
             self.previous_speaker_data.pop()
             self.previous_img_data.pop()
+
+        # add empty list to start of each entry and pop the end
+        for index, row in self.faces_df.iterrows():
+            row['faces'].insert(0, [])
+            row['priority'].insert(0, [])
+            row['landmarks'].insert(0, [])
+            row['faces'].pop()
+            row['priority'].pop()
+            row['landmarks'].pop()
+
+        for key, value in self.speaker_dict.items():
+            # flag to track when a face has been matched
+            matched_face = True
+
+            # iterate through each face in the current priority
+            for face in value:
+                x1, y1, x2, y2 = face
+                roi = self.orig_img[y1:y2, x1:x2]
+
+                # continue without match if no face is found
+                try:
+                    landmarks = getRep(roi)
+                except:
+                    print("couldn't find face")
+                    continue
+
+                # we have found a face, so set matched_face to False
+                matched_face = False
+                # loop through each row (corresponding to a set of the same faces) to see
+                # if this face matches a recently seen one.
+                for index, row in self.faces_df.iterrows():
+                    # loop through all faces in a row and calculate the average similarity
+                    # between faces
+                    counter = 0
+                    total_sim = 0
+                    for j in range(1, self.num_previous):
+                        if row["faces"][j]:
+                            counter+=1
+                            # simply compare with previous face in each entry!!
+                            d = landmarks - row["landmarks"][j]
+                            sim_score = np.dot(d, d)
+                            print(sim_score)
+                            total_sim+=sim_score
+                    ave_sim = 1000
+                    if counter:
+                        ave_sim = total_sim/counter
+                    print(ave_sim)
+                    # if the average similarity is sufficiently low, the faces are considered
+                    # matched
+                    if ave_sim < self.required_sim:
+                        row['faces'][0] = face
+                        row['priority'][0] = key
+                        row['landmarks'][0] = landmarks
+                        matched_face = True
+                        break
+
+                # if the face has been matched or the landmarks could not be applied to the face,
+                # continue to the next face.
+                # if a face was found but not matched, we need to add it as a new entry to the df,
+                # so we move to the final section of code.
+                if matched_face:
+                    continue
+
+                # if face gets to hear, it hasn't been matched to a previous face
+                # we thus want to add it as a new entry
+                a = []
+                b = []
+                c = []
+                for i in range(self.num_previous):
+                    a.append([])
+                    b.append([])
+                    c.append([])
+                a.insert(0, face)
+                b.insert(0, landmarks)
+                c.insert(0, key)
+                a.pop()
+                b.pop()
+                c.pop()
+                self.faces_df = self.faces_df.append({"faces": a, "landmarks": b, "priority": c}, ignore_index=True)
+
+        # delete any rows which no longer store any faces
+        for index, row in self.faces_df.iterrows():
+            if not any(row["faces"]):
+                self.faces_df = self.faces_df.drop([index])
+
+        print(self.faces_df["faces"])
+        print(self.faces_df["landmarks"])
+        print(self.faces_df["priority"])
+
+
+
 
     def summarise_frame(self):
         for key, value in self.speaker_dict.items():

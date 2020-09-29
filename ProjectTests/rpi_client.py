@@ -7,6 +7,9 @@ import threading
 import ctypes
 import pigpio
 
+image_port = 8001
+result_port = 8080
+
 # intial comment for dlib branch
 
 def set_servo(pi, ut):
@@ -46,7 +49,7 @@ class thread(threading.Thread):
         try:
             # create socket
             result_client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            result_client_socket.connect(('Nicolass-MacBook-Air.local', 8080))
+            result_client_socket.connect(('Nicolass-MacBook-Air.local', result_port))
 
             # declare servo control
             pi = pigpio.pi()  # connect to local Pi.
@@ -99,7 +102,7 @@ result_thread.start()
 # Connect a client socket to my_server:8000 (change my_server to the
 # hostname of your server)
 image_client_socket = socket.socket()
-image_client_socket.connect(('Nicolass-MacBook-Air.local', 8001))
+image_client_socket.connect(('Nicolass-MacBook-Air.local', image_port))
 
 # Make a file-like object out of the connection
 image_connection = image_client_socket.makefile('wb')
