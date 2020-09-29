@@ -57,7 +57,6 @@ try:
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             print('yep')
-            speaker_tracker.extract_faces()
             message = 'close'
             result_connection.send(message.encode())
 

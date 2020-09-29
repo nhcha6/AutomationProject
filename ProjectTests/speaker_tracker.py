@@ -32,18 +32,6 @@ class SpeakerTracker(object):
         # declare gaze object
         self.gaze = GazeTracking(self.gaze_lower_ratio, self.gaze_upper_ratio)
         self.headpose = HeadposeDetection(self.headpose_angle_limit)
-        self.previous_speaker_data = []
-        self.previous_img_data = []
-
-        # a = []
-        # b = []
-        # c = []
-        # for i in range(self.num_previous):
-        #     a.append([])
-        #     b.append([])
-        #     c.append([])
-        # empty_data = [[a,b,c]]
-        # self.faces_df = pd.DataFrame(empty_data, columns=['faces', 'landmarks', 'priority'])
         self.faces_df = pd.DataFrame(columns=['faces', 'landmarks', 'priority'])
 
         # variables to be updated each image
@@ -105,12 +93,6 @@ class SpeakerTracker(object):
                     self.speaker_dict['face'].append(face)
 
     def update_pandas_faces(self):
-        self.previous_speaker_data.insert(0, self.speaker_dict)
-        self.previous_img_data.insert(0, self.orig_img)
-        if len(self.previous_speaker_data) > self.num_previous:
-            self.previous_speaker_data.pop()
-            self.previous_img_data.pop()
-
         # add empty list to start of each entry and pop the end
         for index, row in self.faces_df.iterrows():
             row['faces'].insert(0, [])
@@ -280,27 +262,3 @@ class SpeakerTracker(object):
             self.ut += self.Kd * derivative
         self.previous_error = error
         self.previous_time = current_time
-
-    def extract_faces(self):
-        # print(self.previous_speaker_data)
-        # print(self.previous_img_data)
-
-        counter = 0
-
-        first_face = None
-        flag = False
-
-        for i in range(len(self.previous_speaker_data)):
-            image = self.previous_img_data[i]
-            for key, value in self.previous_speaker_data[i].items():
-                for face in value:
-                    counter += 1
-                    x1, y1, x2, y2 = face
-                    roi = image[y1:y2, x1:x2]
-                    # cv2.imwrite("faces/image" + str(counter) + ".jpg", roi)
-                    if flag:
-                        d = getRep(first_face) - getRep(roi)
-                        print(np.dot(d,d))
-                    else:
-                        flag = True
-                        first_face = roi
