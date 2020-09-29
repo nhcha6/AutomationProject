@@ -26,13 +26,16 @@ class SpeakerTracker(object):
         self.headpose_angle_limit = 25
         self.gaze_lower_ratio = 0.6
         self.gaze_upper_ratio = 0.8
-        self.num_previous = 5
+        self.num_previous = 8
         self.required_sim = 1
+        self.gaze_score = 5
+        self.headpose_score = 3
+        self.face_score = 1
 
         # declare gaze object
         self.gaze = GazeTracking(self.gaze_lower_ratio, self.gaze_upper_ratio)
         self.headpose = HeadposeDetection(self.headpose_angle_limit)
-        self.faces_df = pd.DataFrame(columns=['faces', 'landmarks', 'priority'])
+        self.faces_df = pd.DataFrame(columns=['faces', 'landmarks', 'priority', 'attention_score'])
 
         # variables to be updated each image
         self.img = None
@@ -73,7 +76,8 @@ class SpeakerTracker(object):
         self.summarise_frame()
 
         # find the face to track
-        self.find_track_face()
+        self.attention_score()
+        self.find_track_face_old()
 
         # run PID controller
         if self.track_face:
@@ -115,7 +119,6 @@ class SpeakerTracker(object):
                 try:
                     landmarks = getRep(roi)
                 except:
-                    print("couldn't find face")
                     continue
 
                 # we have found a face, so set matched_face to False
@@ -133,12 +136,12 @@ class SpeakerTracker(object):
                             # simply compare with previous face in each entry!!
                             d = landmarks - row["landmarks"][j]
                             sim_score = np.dot(d, d)
-                            print(sim_score)
+                            # print(sim_score)
                             total_sim+=sim_score
                     ave_sim = 1000
                     if counter:
                         ave_sim = total_sim/counter
-                    print(ave_sim)
+                    # print(ave_sim)
                     # if the average similarity is sufficiently low, the faces are considered
                     # matched
                     if ave_sim < self.required_sim:
@@ -177,19 +180,36 @@ class SpeakerTracker(object):
             if not any(row["faces"]):
                 self.faces_df = self.faces_df.drop([index])
 
-        print(self.faces_df["faces"])
-        print(self.faces_df["landmarks"])
-        print(self.faces_df["priority"])
+        # print(self.faces_df["faces"])
+        # print(self.faces_df["landmarks"])
+        # print(self.faces_df["priority"])
 
+    def attention_score(self):
+        self.faces_df["attention_score"] = 0
+        for index, row in self.faces_df.iterrows():
+            attention_score = 0
+            for priority in row['priority']:
+                if priority == 'gaze':
+                    attention_score += self.gaze_score
+                elif priority == 'headpose':
+                    attention_score += self.headpose_score
+                elif priority == 'face':
+                    attention_score += self.face_score
+            self.faces_df["attention_score"][index] = attention_score
 
-
+            face = None
+            for i in range(self.num_previous):
+                if row["faces"][i]:
+                    face = row["faces"][i]
+                    cv2.putText(self.img, str(attention_score), (face[0], face[1]), cv2.FONT_HERSHEY_DUPLEX, 1.6, (0, 0, 255), 2)
+                    break
 
     def summarise_frame(self):
         for key, value in self.speaker_dict.items():
             self.highlight_faces(key, value)
 
 
-    def find_track_face(self):
+    def find_track_face_old(self):
         if self.gaze_faces:
             if len(self.gaze_faces)==1:
                 self.track_face = self.gaze_faces[0]
@@ -205,7 +225,6 @@ class SpeakerTracker(object):
                 self.track_face = self.faces[0]
             else:
                 self.biggest_face(self.faces)
-
 
     def head_pose_new(self):
         self.img, self.head_pose_faces = self.headpose.process_image(self.img, self.faces, False)
