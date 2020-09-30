@@ -26,7 +26,7 @@ class SpeakerTracker(object):
         self.headpose_angle_limit = 25
         self.gaze_lower_ratio = 0.45
         self.gaze_upper_ratio = 0.55
-        self.num_previous = 8
+        self.num_previous = 12
         self.required_sim = 1
         self.gaze_score = 5
         self.headpose_score = 3
@@ -258,10 +258,10 @@ class SpeakerTracker(object):
         # We send this frame to GazeTracking to analyze it
         self.gaze_faces = self.gaze.refresh(self.img, self.head_pose_faces)
 
-        self.img = self.gaze.annotated_frame()
+        # self.img = self.gaze.annotated_frame()
 
-        ratio = str(self.gaze.horizontal_position())
-        cv2.putText(self.img, ratio, (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
+        # ratio = str(self.gaze.horizontal_position())
+        # cv2.putText(self.img, ratio, (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
 
 
     def biggest_face(self, faces):

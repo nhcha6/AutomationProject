@@ -42,6 +42,7 @@ class GazeTracking(object):
             int(self.eye_right.pupil.y)
             return True
         except Exception:
+            print("can't find pupils")
             return False
 
     def _analyze(self):
@@ -55,11 +56,9 @@ class GazeTracking(object):
                 landmarks = self._predictor(frame, face)
                 self.eye_left = Eye(frame, landmarks, 0, self.calibration)
                 self.eye_right = Eye(frame, landmarks, 1, self.calibration)
-
                 ratio = self.horizontal_position()
                 if ratio and self.lower_ratio < ratio and ratio < self.upper_ratio:
                     new_faces.append([face.left(), face.top(), face.right(), face.bottom()])
-
             except IndexError:
                 self.eye_left = None
                 self.eye_right = None
