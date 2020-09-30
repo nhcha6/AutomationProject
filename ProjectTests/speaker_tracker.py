@@ -23,9 +23,9 @@ class SpeakerTracker(object):
         self.previous_time = None
 
         # declare hyper paramaters for speaker tracking
-        self.headpose_angle_limit = 25
-        self.gaze_lower_ratio = 0.45
-        self.gaze_upper_ratio = 0.55
+        self.headpose_angle_limit = 30
+        self.gaze_lower_ratio = 0.46
+        self.gaze_upper_ratio = 0.54
         self.num_previous = 12
         self.required_sim = 1
         self.gaze_score = 5

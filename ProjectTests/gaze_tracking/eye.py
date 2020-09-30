@@ -111,7 +111,10 @@ class Eye(object):
         self._isolate(original_frame, landmarks, points)
 
         if not calibration.is_complete():
+            print()
             calibration.evaluate(self.frame, side)
 
-        threshold = calibration.threshold(side)
+        # take the best threshold each time for greater accuracy
+        threshold = calibration.find_best_threshold(self.frame)
+        #threshold = calibration.threshold(side)
         self.pupil = Pupil(self.frame, threshold)

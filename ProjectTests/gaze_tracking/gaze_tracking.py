@@ -42,7 +42,6 @@ class GazeTracking(object):
             int(self.eye_right.pupil.y)
             return True
         except Exception:
-            print("can't find pupils")
             return False
 
     def _analyze(self):

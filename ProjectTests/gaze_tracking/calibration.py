@@ -75,3 +75,4 @@ class Calibration(object):
             self.thresholds_left.append(threshold)
         elif side == 1:
             self.thresholds_right.append(threshold)
+
