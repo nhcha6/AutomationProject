@@ -24,8 +24,8 @@ class SpeakerTracker(object):
 
         # declare hyper paramaters for speaker tracking
         self.headpose_angle_limit = 25
-        self.gaze_lower_ratio = 0.6
-        self.gaze_upper_ratio = 0.8
+        self.gaze_lower_ratio = 0.45
+        self.gaze_upper_ratio = 0.55
         self.num_previous = 8
         self.required_sim = 1
         self.gaze_score = 5
@@ -222,7 +222,6 @@ class SpeakerTracker(object):
 
         if self.track_index is not None:
             for face in self.faces_df["faces"][self.track_index]:
-                print(face)
                 if face:
                     self.track_face = face
                     break
@@ -261,8 +260,8 @@ class SpeakerTracker(object):
 
         self.img = self.gaze.annotated_frame()
 
-        # ratio = str(self.gaze.horizontal_ratio())
-        # cv2.putText(self.img, ratio, (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
+        ratio = str(self.gaze.horizontal_position())
+        cv2.putText(self.img, ratio, (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
 
 
     def biggest_face(self, faces):

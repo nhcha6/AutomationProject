@@ -56,7 +56,7 @@ class GazeTracking(object):
                 self.eye_left = Eye(frame, landmarks, 0, self.calibration)
                 self.eye_right = Eye(frame, landmarks, 1, self.calibration)
 
-                ratio = self.horizontal_ratio()
+                ratio = self.horizontal_position()
                 if ratio and self.lower_ratio < ratio and ratio < self.upper_ratio:
                     new_faces.append([face.left(), face.top(), face.right(), face.bottom()])
 
@@ -132,6 +132,21 @@ class GazeTracking(object):
             blinking_ratio = (self.eye_left.blinking + self.eye_right.blinking) / 2
             return blinking_ratio > 3.8
 
+    def horizontal_position(self):
+        if self.pupils_located:
+            height_right, width_right = self.eye_right.frame.shape[:2]
+            origin_right_x, origin_right_y = self.eye_right.origin
+            x_right, y_right = self.pupil_right_coords()
+            right_pos = (x_right - origin_right_x) / width_right
+
+            height_left, width_left = self.eye_left.frame.shape[:2]
+            origin_left_x, origin_left_y = self.eye_left.origin
+            x_left, y_left = self.pupil_left_coords()
+            left_pos = (x_left - origin_left_x) / width_left
+
+            ratio = (right_pos + left_pos)/2
+            return ratio
+
     def annotate_eye_right_box(self, frame):
         height, width = self.eye_right.frame.shape[:2]
         origin_x, origin_y = self.eye_right.origin
@@ -145,9 +160,6 @@ class GazeTracking(object):
         x_right, y_right = self.pupil_right_coords()
         cv2.line(frame, (x_right - 5, y_right), (x_right + 5, y_right), color)
         cv2.line(frame, (x_right, y_right - 5), (x_right, y_right + 5), color)
-
-        ratio = (x_right - origin_x) / width
-        print(ratio)
         return frame
 
     def annotate_eye_left_box(self, frame):
@@ -163,9 +175,6 @@ class GazeTracking(object):
         x_left, y_left = self.pupil_left_coords()
         cv2.line(frame, (x_left - 5, y_left), (x_left + 5, y_left), color)
         cv2.line(frame, (x_left, y_left - 5), (x_left, y_left + 5), color)
-
-        ratio = (x_left - origin_x) / width
-        print(ratio)
         return frame
 
     def annotated_frame(self):
