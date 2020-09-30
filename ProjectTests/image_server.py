@@ -5,8 +5,8 @@ import cv2
 import numpy as np
 from speaker_tracker import SpeakerTracker
 
-image_port = 8001
-result_port = 8081
+image_port = 8002
+result_port = 8082
 
 # Start a socket listening for connections on 0.0.0.0:8000 (0.0.0.0 means
 # all interfaces)

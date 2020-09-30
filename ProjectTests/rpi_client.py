@@ -7,8 +7,8 @@ import threading
 import ctypes
 import pigpio
 
-image_port = 8001
-result_port = 8081
+image_port = 8002
+result_port = 8082
 
 # intial comment for dlib branch
 

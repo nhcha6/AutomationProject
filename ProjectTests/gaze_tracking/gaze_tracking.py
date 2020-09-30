@@ -132,17 +132,48 @@ class GazeTracking(object):
             blinking_ratio = (self.eye_left.blinking + self.eye_right.blinking) / 2
             return blinking_ratio > 3.8
 
+    def annotate_eye_right_box(self, frame):
+        height, width = self.eye_right.frame.shape[:2]
+        origin_x, origin_y = self.eye_right.origin
+        color = (0, 0, 255)
+        cv2.line(frame, (origin_x, origin_y), (origin_x+width, origin_y), color)
+        cv2.line(frame, (origin_x, origin_y), (origin_x, origin_y+height), color)
+        cv2.line(frame, (origin_x, origin_y+height), (origin_x+width, origin_y+height), color)
+        cv2.line(frame, (origin_x+width, origin_y), (origin_x+width, origin_y+height), color)
+
+        color = (0, 255, 0)
+        x_right, y_right = self.pupil_right_coords()
+        cv2.line(frame, (x_right - 5, y_right), (x_right + 5, y_right), color)
+        cv2.line(frame, (x_right, y_right - 5), (x_right, y_right + 5), color)
+
+        ratio = (x_right - origin_x) / width
+        print(ratio)
+        return frame
+
+    def annotate_eye_left_box(self, frame):
+        height, width = self.eye_left.frame.shape[:2]
+        origin_x, origin_y = self.eye_left.origin
+        color = (0, 0, 255)
+        cv2.line(frame, (origin_x, origin_y), (origin_x + width, origin_y), color)
+        cv2.line(frame, (origin_x, origin_y), (origin_x, origin_y + height), color)
+        cv2.line(frame, (origin_x, origin_y + height), (origin_x + width, origin_y + height), color)
+        cv2.line(frame, (origin_x + width, origin_y), (origin_x + width, origin_y + height), color)
+
+        color = (0, 255, 0)
+        x_left, y_left = self.pupil_left_coords()
+        cv2.line(frame, (x_left - 5, y_left), (x_left + 5, y_left), color)
+        cv2.line(frame, (x_left, y_left - 5), (x_left, y_left + 5), color)
+
+        ratio = (x_left - origin_x) / width
+        print(ratio)
+        return frame
+
     def annotated_frame(self):
         """Returns the main frame with pupils highlighted"""
         frame = self.frame.copy()
 
         if self.pupils_located:
-            color = (0, 255, 0)
-            x_left, y_left = self.pupil_left_coords()
-            x_right, y_right = self.pupil_right_coords()
-            cv2.line(frame, (x_left - 5, y_left), (x_left + 5, y_left), color)
-            cv2.line(frame, (x_left, y_left - 5), (x_left, y_left + 5), color)
-            cv2.line(frame, (x_right - 5, y_right), (x_right + 5, y_right), color)
-            cv2.line(frame, (x_right, y_right - 5), (x_right, y_right + 5), color)
+            frame = self.annotate_eye_left_box(frame)
+            frame = self.annotate_eye_right_box(frame)
 
         return frame
