@@ -4,6 +4,7 @@ import time
 #import dlib
 from gaze_tracking import GazeTracking
 from head_pose_estimation import *
+from mouth_tracking import MouthTracking
 from headpose import HeadposeDetection
 from compare import *
 import copy
@@ -26,7 +27,7 @@ class SpeakerTracker(object):
         self.headpose_angle_limit = 30
         self.gaze_lower_ratio = 0.46
         self.gaze_upper_ratio = 0.54
-        self.num_previous = 12
+        self.num_previous = 30
         self.required_sim = 1
         self.gaze_score = 5
         self.headpose_score = 3
@@ -35,7 +36,8 @@ class SpeakerTracker(object):
         # declare gaze object
         self.gaze = GazeTracking(self.gaze_lower_ratio, self.gaze_upper_ratio)
         self.headpose = HeadposeDetection(self.headpose_angle_limit)
-        self.faces_df = pd.DataFrame(columns=['faces', 'landmarks', 'priority', 'attention_score'])
+        self.mouth = MouthTracking()
+        self.faces_df = pd.DataFrame(columns=['faces', 'landmarks', 'priority', 'mouth_ratio', 'attention_score'])
         self.track_index = None
 
         # variables to be updated each image
@@ -82,6 +84,9 @@ class SpeakerTracker(object):
         # find track face
         self.find_track_face()
 
+        # figure out if that face is speaking
+        self.find_speaker()
+
         # run PID controller
         if self.track_face:
             self.PID_controller()
@@ -105,9 +110,11 @@ class SpeakerTracker(object):
             row['faces'].insert(0, [])
             row['priority'].insert(0, [])
             row['landmarks'].insert(0, [])
+            row['mouth_ratio'].insert(0, [])
             row['faces'].pop()
             row['priority'].pop()
             row['landmarks'].pop()
+            row['mouth_ratio'].pop()
 
         for key, value in self.speaker_dict.items():
             # flag to track when a face has been matched
@@ -151,6 +158,7 @@ class SpeakerTracker(object):
                         row['faces'][0] = face
                         row['priority'][0] = key
                         row['landmarks'][0] = landmarks
+                        row['mouth_ratio'][0] = self.mouth.refresh(self.orig_img, face)
                         matched_face = True
                         break
 
@@ -166,17 +174,21 @@ class SpeakerTracker(object):
                 a = []
                 b = []
                 c = []
+                d = []
                 for i in range(self.num_previous):
                     a.append([])
                     b.append([])
                     c.append([])
+                    d.append([])
                 a.insert(0, face)
                 b.insert(0, landmarks)
                 c.insert(0, key)
+                d.insert(0, self.mouth.refresh(self.orig_img, face))
                 a.pop()
                 b.pop()
                 c.pop()
-                self.faces_df = self.faces_df.append({"faces": a, "landmarks": b, "priority": c}, ignore_index=True)
+                d.pop()
+                self.faces_df = self.faces_df.append({"faces": a, "landmarks": b, "priority": c, "mouth_ratio": d}, ignore_index=True)
 
         # delete any rows which no longer store any faces
         for index, row in self.faces_df.iterrows():
@@ -186,6 +198,7 @@ class SpeakerTracker(object):
         # print(self.faces_df["faces"])
         # print(self.faces_df["landmarks"])
         # print(self.faces_df["priority"])
+        # print(self.faces_df["mouth_ratio"])
 
     def attention_score(self):
         self.faces_df["attention_score"] = 0
@@ -225,10 +238,24 @@ class SpeakerTracker(object):
                 if face:
                     self.track_face = face
                     break
-
         # print(max_score)
         # print(self.track_index)
         # print(self.track_face)
+
+    def find_speaker(self):
+        if self.track_face:
+            # remove all empty entries
+            ratios = [x for x in self.faces_df["mouth_ratio"][self.track_index] if x]
+            # calculate variance
+            max_ratio = max(ratios)
+            min_ratio = min(ratios)
+            mean = np.mean(ratios)
+            diff = max_ratio-min_ratio
+            std_diff = diff/mean
+            #print(std_diff)
+            print(mean/min_ratio)
+            if std_diff>2:
+                cv2.putText(self.img, 'Talking', (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (0, 0, 255), 2)
 
     def summarise_frame(self):
         for key, value in self.speaker_dict.items():
