@@ -12,6 +12,7 @@ class MouthTracking(object):
         self.frame = None
         self.face = None
         self.mouth_aspect_ratio = None
+        self.ratios = []
 
         # _face_detector is used to detect faces
         self._face_detector = dlib.get_frontal_face_detector()
@@ -49,6 +50,7 @@ class MouthTracking(object):
         self.face=face
         self.mouth_aspect_ratio = None
         self.aspectRatio()
+        self.ratios.append(self.mouth_aspect_ratio)
         return(self.mouth_aspect_ratio)
 
 

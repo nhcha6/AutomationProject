@@ -111,7 +111,6 @@ class Eye(object):
         self._isolate(original_frame, landmarks, points)
 
         if not calibration.is_complete():
-            print()
             calibration.evaluate(self.frame, side)
 
         # take the best threshold each time for greater accuracy

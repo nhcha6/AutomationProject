@@ -1,6 +1,5 @@
 #import cv2
 #import numpy as np
-import time
 #import dlib
 from gaze_tracking import GazeTracking
 from head_pose_estimation import *
@@ -27,7 +26,7 @@ class SpeakerTracker(object):
         self.headpose_angle_limit = 30
         self.gaze_lower_ratio = 0.46
         self.gaze_upper_ratio = 0.54
-        self.num_previous = 30
+        self.num_previous = 12
         self.required_sim = 1
         self.gaze_score = 5
         self.headpose_score = 3
@@ -90,6 +89,7 @@ class SpeakerTracker(object):
         # run PID controller
         if self.track_face:
             self.PID_controller()
+
 
     def summarise_speaker_data(self):
         self.speaker_dict = {}
@@ -244,18 +244,21 @@ class SpeakerTracker(object):
 
     def find_speaker(self):
         if self.track_face:
-            # remove all empty entries
-            ratios = [x for x in self.faces_df["mouth_ratio"][self.track_index] if x]
-            # calculate variance
-            max_ratio = max(ratios)
-            min_ratio = min(ratios)
-            mean = np.mean(ratios)
-            diff = max_ratio-min_ratio
-            std_diff = diff/mean
-            #print(std_diff)
-            print(mean/min_ratio)
-            if std_diff>2:
-                cv2.putText(self.img, 'Talking', (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (0, 0, 255), 2)
+            try:
+                # remove all empty entries
+                ratios = [x for x in self.faces_df["mouth_ratio"][self.track_index] if x]
+                # calculate variance
+                max_ratio = max(ratios)
+                min_ratio = min(ratios)
+                mean = np.mean(ratios)
+                diff = max_ratio-min_ratio
+                std_diff = diff/mean
+                #print(std_diff)
+                print(mean/min_ratio)
+                if std_diff>2:
+                    cv2.putText(self.img, 'Talking', (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (0, 0, 255), 2)
+            except ValueError:
+                pass
 
     def summarise_frame(self):
         for key, value in self.speaker_dict.items():
