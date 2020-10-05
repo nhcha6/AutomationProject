@@ -7,7 +7,15 @@ import cv2
 import RPi.GPIO as GPIO  # Import module “RPi.GPIO” and gave it a nickname “GPIO”
 import matplotlib.pyplot as plt
 
-def color_segmentation(range1, range2):
+def track_colour(range1, range2):
+    """
+    function which isolates the colour between the input colour range and actuates the servos
+    to centre the object in the middle of the camera field of view.
+    :param range1: colour lower bound
+    :param range2: colour upper bound
+    :return:
+    """
+
     global previous_error
     global previous_time
  
@@ -22,27 +30,27 @@ def color_segmentation(range1, range2):
     camera.awb_gains = 1.3
     # initialise the picture arrage with the corresponding size
     rawCapture = PiRGBArray(camera, size=(640, 480))
-    
+
+    # continuously capture frames
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         image = frame.array
         hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
         maskFinger = cv2.inRange(hsv_image, range1, range2)
-        
        
-            # calc moments
+        # calc moments
         try:
             M = cv2.moments(maskFinger)
             cX = int(M["m10"] / M["m00"])
             cY = int(M["m01"] / M["m00"])
             cv2.circle(image, (cX, cY), 5, (0, 0, 255), 4, 3)
+            # give actual position to PID_controller function
             PID_controller((cX, cY), desire_pos)
         except ZeroDivisionError:
             #previous_time = None
             #previous_error = None
             pass
-        #PID_controller((cX, cY), desire_pos)
 
-        # cv2.imshow('PP', masked_image)
+        # display image
         cv2.imshow('PP', image)
         # clear the stream in preparation for the next frame
         rawCapture.truncate(0)
@@ -52,6 +60,9 @@ def color_segmentation(range1, range2):
 
     # When everything done, release the capture
     # cv2.destroyAllWindows()
+
+# takes the actual position of tracked object and calculates the change in servo angle required
+# to bring it towards the desired position (the centre of the camera).
 def PID_controller(actual_pos, desire_pos):
     global previous_error
     global previous_time
@@ -64,10 +75,14 @@ def PID_controller(actual_pos, desire_pos):
         derivative = (error - previous_error) / (current_time - previous_time)
         #print(Kd*derivative)
         ut += Kd * derivative
+
+    # set the servos to be equal to the calculate change.
     set_servo(ut)
     previous_error = error
     previous_time = current_time
 
+# takes a tuple containing the changes required to the servo pulsewidth, and updates the
+# servo position.
 def set_servo(ut):
     # pi.set_mode(23, pigpio.INPUT) #set pin 23 as input
     # pi.set_pull_up_down(23, pigpio.PUD_UP) #set internal pull up resistor for pin 23
@@ -91,6 +106,9 @@ def set_servo(ut):
     except AttributeError as e:
         print(e)
 
+
+# other function involved in testing the servo/motor disk control. Not related directly to
+# Module Task 3.
 def servoCamPan():
     # pi.set_mode(23, pigpio.INPUT) #set pin 23 as input
     # pi.set_pull_up_down(23, pigpio.PUD_UP) #set internal pull up resistor for pin 23
@@ -120,16 +138,17 @@ def vibrateControl():
         pi.set_PWM_dutycycle(18, i)
         time.sleep(1)
 
+# set the range to track the blue bottle cap.
 range_1 = (170, 110, 50)
 range_2 = (180, 230, 150)
+# declare previous error and previous time,
 previous_error = None
 previous_time = None
-#servoCamPan()
 pi = pigpio.pi() #connect to local Pi.
-# pi.set_mode(23, pigpio.INPUT) #set pin 23 as input
-# pi.set_pull_up_down(23, pigpio.PUD_UP) #set internal pull up resistor for pin 23
-# print(pi.read(23)) #get the pin status, should print 1
+# set pin modes for servos.
 pi.set_mode(18, pigpio.OUTPUT)
 pi.set_mode(17, pigpio.OUTPUT)
+# centre servo to begin
 servoCamCentre()
-color_segmentation(range_1, range_2)
+# call the tracking function.
+track_colour(range_1, range_2)
