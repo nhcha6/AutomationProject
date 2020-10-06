@@ -247,18 +247,31 @@ class SpeakerTracker(object):
             try:
                 # remove all empty entries
                 ratios = [x for x in self.faces_df["mouth_ratio"][self.track_index] if x]
+                # reject outliers
+                ratio_rejected = self.reject_outliers(ratios)
                 # calculate variance
-                max_ratio = max(ratios)
-                min_ratio = min(ratios)
-                mean = np.mean(ratios)
-                diff = max_ratio-min_ratio
-                std_diff = diff/mean
-                #print(std_diff)
-                print(mean/max_ratio)
-                if std_diff>2:
+                # max_ratio = max(ratio_rejected)
+                # min_ratio = min(ratio_rejected)
+                mean = np.mean(ratio_rejected)
+                std = np.std(ratio_rejected)
+                index = mean*std
+                print('index:' + str(index))
+                print('mean' + str(mean))
+                if index>0.0007:
                     cv2.putText(self.img, 'Talking', (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (0, 0, 255), 2)
             except ValueError:
                 pass
+
+    def reject_outliers_2(self, data, m=2):
+        new_data = np.array(data)
+        d = np.abs(data - np.median(new_data))
+        mdev = np.median(d)
+        s = d / mdev if mdev else 0
+        return new_data[s < m]
+
+    def reject_outliers(self, data, m=2):
+        new_data = [x for x in data if (abs(x - np.mean(data)) < m * np.std(self.mouth.ratios))]
+        return new_data
 
     def summarise_frame(self):
         for key, value in self.speaker_dict.items():

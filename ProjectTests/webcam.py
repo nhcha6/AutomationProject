@@ -22,6 +22,7 @@ def plot_mouth_data():
     max_list = []
     mean_list = []
     std = []
+    median = []
     mean_diff_list = []
     index = []
     mean_diff_mean = []
@@ -34,14 +35,14 @@ def plot_mouth_data():
             mean_diff.pop()
         # remove outliers from rolling sample:
         outliers_removed = reject_outliers(rolling_sample)
-
+        median.append(np.median(rolling_sample))
         index.append(np.mean(outliers_removed)*np.std(outliers_removed))
         #mean_diff_mean.append(np.mean(mean_diff))
         #mean_diff_list.append(abs(ratio-mean))
         #max_list.append(max(rolling_sample))
         mean_list.append(np.mean(outliers_removed))
         std.append(np.std(outliers_removed))
-    plot_vars = {'mean': mean_list, 'std': std, 'index': index, 'index': index}
+    plot_vars = {'mean': mean_list, 'std': std, 'index': index, 'index': index, 'median': median}
 
     for key, val in plot_vars.items():
         plt.plot(val)
