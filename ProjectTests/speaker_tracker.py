@@ -254,7 +254,7 @@ class SpeakerTracker(object):
                 diff = max_ratio-min_ratio
                 std_diff = diff/mean
                 #print(std_diff)
-                print(mean/min_ratio)
+                print(mean/max_ratio)
                 if std_diff>2:
                     cv2.putText(self.img, 'Talking', (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (0, 0, 255), 2)
             except ValueError:
