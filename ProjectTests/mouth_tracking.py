@@ -28,9 +28,9 @@ class MouthTracking(object):
             x1, y1, x2, y2 = self.face
             rect = dlib.rectangle(x1, y1, x2, y2)
             landmarks = self._predictor(gray, rect)
-            #points = [49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
+
             points = [x for x in range(60, 68)]
-            #points = [x for x in range(48, 58)]
+
             landmarks = np.array([(landmarks.part(point).x, landmarks.part(point).y) for point in points])
             A = dist.euclidean(landmarks[1], landmarks[7])
             B = dist.euclidean(landmarks[3], landmarks[5])

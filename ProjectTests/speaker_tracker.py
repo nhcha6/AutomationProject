@@ -31,6 +31,9 @@ class SpeakerTracker(object):
         self.gaze_score = 5
         self.headpose_score = 3
         self.face_score = 1
+        self.mouth_threshold = 0.0005
+        self.max_index = 0.002
+        self.min_mouth_thresh = 0.0005
 
         # declare gaze object
         self.gaze = GazeTracking(self.gaze_lower_ratio, self.gaze_upper_ratio)
@@ -48,6 +51,7 @@ class SpeakerTracker(object):
         self.speaker_dict = None
         self.head_pose_faces = []
         self.gaze_faces = []
+        self.mouth_index = []
 
     def refresh(self, image):
         self.img = image
@@ -213,7 +217,6 @@ class SpeakerTracker(object):
                     attention_score += self.face_score
             self.faces_df["attention_score"][index] = attention_score
 
-            face = None
             for i in range(self.num_previous):
                 if row["faces"][i]:
                     face = row["faces"][i]
@@ -243,6 +246,7 @@ class SpeakerTracker(object):
         # print(self.track_face)
 
     def find_speaker(self):
+        # track face only selected if a reasonable attention score is found.
         if self.track_face:
             try:
                 # remove all empty entries
@@ -256,9 +260,23 @@ class SpeakerTracker(object):
                 std = np.std(ratio_rejected)
                 index = mean*std
                 print('index:' + str(index))
-                print('mean' + str(mean))
-                if index>0.0007:
-                    cv2.putText(self.img, 'Talking', (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (0, 0, 255), 2)
+
+                if not np.isnan(index):
+                    # set cap on index and add to list
+                    if index>self.max_index:
+                        index = self.max_index
+                    self.mouth_index.insert(0,index)
+                    # only keep 1000 most recent indexes
+                    if len(self.mouth_index) > 100:
+                        self.mouth_index.pop()
+
+                    # talking criteria
+                    if index>self.mouth_threshold:
+                        cv2.putText(self.img, 'Talking', (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (0, 0, 255), 2)
+
+                    # update threshold
+                    self.update_threshold()
+
             except ValueError:
                 pass
 
@@ -270,8 +288,29 @@ class SpeakerTracker(object):
         return new_data[s < m]
 
     def reject_outliers(self, data, m=2):
+        # potential issue that sd taken on all mouth ratios seen, not just the one face....
         new_data = [x for x in data if (abs(x - np.mean(data)) < m * np.std(self.mouth.ratios))]
         return new_data
+
+    def update_threshold(self):
+        sorted_index = sorted(self.mouth_index)
+        # improve efficiency
+        for i in range(len(sorted_index)):
+            if sorted_index[i] > self.mouth_threshold:
+                break
+        # split list to those above and below the thresh and find the mean.
+        below_thresh = sorted_index[:i]
+        above_thresh = sorted_index[i:]
+        mean1 = np.mean(below_thresh)
+        mean2 = np.mean(above_thresh)
+
+        if not np.isnan(mean1) and not np.isnan(mean2):
+            self.mouth_threshold = (mean1+mean2)/2
+
+        if self.mouth_threshold<self.min_mouth_thresh:
+            self.mouth_threshold = self.min_mouth_thresh
+
+        print("new thresh: " + str(self.mouth_threshold))
 
     def summarise_frame(self):
         for key, value in self.speaker_dict.items():
