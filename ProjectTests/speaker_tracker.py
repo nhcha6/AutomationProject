@@ -22,7 +22,7 @@ class SpeakerTracker(object):
         self.previous_error = None
         self.previous_time = None
 
-        # declare hyper paramaters for speaker tracking
+        # declare hyper paramaters for gaze, headpose and attention tracking
         self.headpose_angle_limit = 30
         self.gaze_lower_ratio = 0.46
         self.gaze_upper_ratio = 0.54
@@ -31,9 +31,12 @@ class SpeakerTracker(object):
         self.gaze_score = 5
         self.headpose_score = 3
         self.face_score = 1
+
+        # declare speaker hyper parameters
         self.mouth_threshold = 0.0005
         self.max_index = 0.0015
         self.min_mouth_thresh = 0.0005
+        self.num_indexes = 150
 
         # declare gaze object
         self.gaze = GazeTracking(self.gaze_lower_ratio, self.gaze_upper_ratio)
@@ -266,8 +269,8 @@ class SpeakerTracker(object):
                     if index>self.max_index:
                         index = self.max_index
                     self.mouth_index.insert(0,index)
-                    # only keep 200 most recent indexes
-                    if len(self.mouth_index) > 200:
+                    # only keep some of the recent indexes
+                    if len(self.mouth_index) > self.num_indexes:
                         self.mouth_index.pop()
 
                     # talking criteria
