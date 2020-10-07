@@ -32,7 +32,7 @@ class SpeakerTracker(object):
         self.headpose_score = 3
         self.face_score = 1
         self.mouth_threshold = 0.0005
-        self.max_index = 0.002
+        self.max_index = 0.0015
         self.min_mouth_thresh = 0.0005
 
         # declare gaze object
@@ -266,8 +266,8 @@ class SpeakerTracker(object):
                     if index>self.max_index:
                         index = self.max_index
                     self.mouth_index.insert(0,index)
-                    # only keep 1000 most recent indexes
-                    if len(self.mouth_index) > 100:
+                    # only keep 200 most recent indexes
+                    if len(self.mouth_index) > 200:
                         self.mouth_index.pop()
 
                     # talking criteria
