@@ -1,23 +1,64 @@
 from keras.models import Sequential
 from keras.layers import *
 from keras.optimizers import *
+from keras.callbacks import Callback
 from tqdm import tqdm
 import os
 import cv2
 from random import shuffle
 import matplotlib.pyplot as plt
 
+class TrainingPlot(Callback):
 
+    # This function is called when the training begins
+    def on_train_begin(self, logs={}):
+        # Initialize the lists for holding the logs, losses and accuracies
+        self.losses = []
+        self.acc = []
+        self.val_losses = []
+        self.val_acc = []
+        self.logs = []
+
+    # This function is called at the end of each epoch
+    def on_epoch_end(self, epoch, logs={}):
+
+        # Append the logs, losses and accuracies to the lists
+        self.logs.append(logs)
+        self.losses.append(logs.get('loss'))
+        self.acc.append(logs.get('accuracy'))
+
+        # Before plotting ensure at least 2 epochs have passed
+        if len(self.losses) == 25:
+
+            N = np.arange(0, len(self.losses))
+
+            # You can chose the style of your preference
+            # print(plt.style.available) to see the available options
+            #plt.style.use("seaborn")
+
+            # Plot train loss, train acc, val loss and val acc against epochs passed
+            plt.figure()
+            plt.plot(N, self.losses, label = "train_loss")
+            plt.plot(N, self.acc, label = "train_acc")
+            plt.title("Training Loss and Accuracy [Epoch {}]".format(epoch))
+            plt.xlabel("Epoch #")
+            plt.ylabel("Loss/Accuracy")
+            plt.legend()
+            # Make sure there exists a folder called output in the current directory
+            # or replace 'output' with whatever direcory you want to put in the plots
+            plt.savefig('output/Epoch-{}.png'.format(epoch))
+            plt.close()
 
 labelled_images = []
-for vehicle in ['car','ship','plane']:
+for vehicle in ['ship','kangaroo','car']:
     for i in tqdm(os.listdir(vehicle)):
         path = os.path.join(vehicle, i)
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        #img = cv2.imread(path)
         try:
             img = cv2.resize(img, (128,128))
             label = [0,0,0]
-            ind = ['car', 'ship', 'plane'].index(vehicle)
+            ind = ['ship','kangaroo','car'].index(vehicle)
             label[ind] = 1
             labelled_images.append([img, label])
         except cv2.error:
@@ -54,7 +95,8 @@ model.add(Dense(3, activation='softmax'))
 optimiser = Adam(lr=1e-3)
 
 model.compile(optimizer=optimiser, loss='categorical_crossentropy', metrics=['accuracy'])
-model.fit(x=tr_img_data, y=tr_lbl_data, epochs=50, batch_size=100)
+plot_losses = TrainingPlot()
+model.fit(x=tr_img_data, y=tr_lbl_data, epochs=25, batch_size=100, callbacks=[plot_losses])
 model.summary()
 
 
@@ -66,7 +108,7 @@ for cnt, data in enumerate(testing_images[10:40]):
     data = img.reshape(1,128,128,1)
     model_out = model.predict([data])
 
-    labels = ['car','ship','plane']
+    labels = ['ship','kangaroo','car']
     str_label = labels[np.argmax(model_out)]
 
     y.imshow(img, cmap='gray')
