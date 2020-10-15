@@ -70,15 +70,17 @@ training_images = labelled_images[:500]
 testing_images = labelled_images[500:]
 
 tr_img_data = np.array([i[0] for i in training_images]).reshape(-1,128,128,1)
+
+print(tr_img_data[0])
 tr_lbl_data = np.array([i[1] for i in training_images])
 tst_img_data = np.array([i[0] for i in testing_images]).reshape(-1,128,128,1)
 tst_lbl_data = np.array([i[1] for i in testing_images])
 
 model = Sequential()
 
-model.add(InputLayer(input_shape=[128,128,1]))
+#model.add(InputLayer(input_shape=[128,128,1]))
 
-model.add(Conv2D(filters=32, kernel_size=5,strides=1, padding='same', activation='relu'))
+model.add(Conv2D(filters=32, kernel_size=5,strides=1, padding='same', activation='relu', input_shape=(128,128,1)))
 model.add(MaxPool2D(pool_size=5,padding='same'))
 
 model.add(Conv2D(filters=50, kernel_size=5,strides=1, padding='same', activation='relu'))
@@ -98,6 +100,21 @@ model.compile(optimizer=optimiser, loss='categorical_crossentropy', metrics=['ac
 plot_losses = TrainingPlot()
 model.fit(x=tr_img_data, y=tr_lbl_data, epochs=25, batch_size=100, callbacks=[plot_losses])
 model.summary()
+
+model.save('module_4_model')
+
+
+# # Save tf.keras model in H5 format.
+# keras_file = 'keras_model.h5'
+# tf.keras.models.save_model(model, keras_file)
+#
+# # Convert the model.
+# converter = tf.compat.v1.lite.TFLiteConverter.from_keras_model_file(keras_file)
+# tflite_model = converter.convert()
+#
+# # Save the model.
+# with open('model.tflite', 'wb') as f:
+#   f.write(tflite_model)
 
 
 fig = plt.figure(figsize=(14,14))
