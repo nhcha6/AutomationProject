@@ -22,8 +22,8 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
     image = frame.array
     cv2.imshow("image", image)
 
-    frame = cv2.resize(image, (128, 128))
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    frame = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    frame = cv2.resize(frame, (128, 128))
     input_image = frame.reshape(-1, 128, 128, 1)
     input_image = input_image.astype(np.float32)
 
