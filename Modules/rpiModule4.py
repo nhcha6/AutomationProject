@@ -43,6 +43,9 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
         # Use `tensor()` in order to get a pointer to the tensor.
         output_data = interpreter.get_tensor(output_details[0]['index'])
         print(output_data)
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+
+    rawCapture.truncate(0)
+
+cv2.destroyAllWindows()
+
