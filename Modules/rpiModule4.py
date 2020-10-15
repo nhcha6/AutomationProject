@@ -17,25 +17,25 @@ camera.awb_gains = 1.3
 # initialise the picture arrage with the corresponding size
 rawCapture = PiRGBArray(camera, size=(640, 480))
 
+# Load the TFLite model and allocate tensors.
+interpreter = tf.lite.Interpreter(model_path="model.tflite")
+interpreter.allocate_tensors()
+
+# Get input and output tensors.
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+
 # continuously capture frames
 for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
     image = frame.array
     cv2.imshow("image", image)
 
-    frame = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    frame = cv2.resize(frame, (128, 128))
-    input_image = frame.reshape(-1, 128, 128, 1)
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    input_image = cv2.resize(gray_image, (128, 128))
+    input_image = input_image.reshape(-1, 128, 128, 1)
     input_image = input_image.astype(np.float32)
 
     if cv2.waitKey(1) & 0xFF == ord('r'):
-        # Load the TFLite model and allocate tensors.
-        interpreter = tf.lite.Interpreter(model_path="model.tflite")
-        interpreter.allocate_tensors()
-
-        # Get input and output tensors.
-        input_details = interpreter.get_input_details()
-        output_details = interpreter.get_output_details()
-
         # Test the model on random input data.
         input_shape = input_details[0]['shape']
         input_data = np.array(np.random.random_sample(input_shape), dtype=np.float32)
