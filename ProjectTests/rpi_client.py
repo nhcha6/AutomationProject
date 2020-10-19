@@ -68,6 +68,8 @@ class thread(threading.Thread):
                         continue
                     set_servo(pi, ut_received)
 
+
+
                 elif result == close_message.encode():
                     print(result.decode())
                     global closeFlag

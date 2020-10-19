@@ -8,6 +8,8 @@ import cv2
 from random import shuffle
 import matplotlib.pyplot as plt
 
+
+# class for generating the accuracy and loss plot during training.
 class TrainingPlot(Callback):
 
     # This function is called when the training begins
@@ -49,6 +51,7 @@ class TrainingPlot(Callback):
             plt.savefig('output/Epoch-{}.png'.format(epoch))
             plt.close()
 
+# import images from file and label them
 labelled_images = []
 for vehicle in ['ship','kangaroo','car']:
     for i in tqdm(os.listdir(vehicle)):
@@ -66,16 +69,18 @@ for vehicle in ['ship','kangaroo','car']:
 shuffle(labelled_images)
 print(len(labelled_images))
 
+# split to training and testing
 training_images = labelled_images[:500]
 testing_images = labelled_images[500:]
 
+# reshape data for input to tensorflow model.
 tr_img_data = np.array([i[0] for i in training_images]).reshape(-1,128,128,1)
-
 print(tr_img_data[0])
 tr_lbl_data = np.array([i[1] for i in training_images])
 tst_img_data = np.array([i[0] for i in testing_images]).reshape(-1,128,128,1)
 tst_lbl_data = np.array([i[1] for i in testing_images])
 
+# declare model
 model = Sequential()
 
 #model.add(InputLayer(input_shape=[128,128,1]))
@@ -96,19 +101,17 @@ model.add(Dropout(rate=0.5))
 model.add(Dense(3, activation='softmax'))
 optimiser = Adam(lr=1e-3)
 
+# compile model and train
 model.compile(optimizer=optimiser, loss='categorical_crossentropy', metrics=['accuracy'])
 plot_losses = TrainingPlot()
 model.fit(x=tr_img_data, y=tr_lbl_data, epochs=25, batch_size=100, callbacks=[plot_losses])
 model.summary()
 
+# save model
 model.save('module_4_model')
 
 
-# # Save tf.keras model in H5 format.
-# keras_file = 'keras_model.h5'
-# tf.keras.models.save_model(model, keras_file)
-#
-# # Convert the model.
+# # convert the model to the tf_lite
 # converter = tf.compat.v1.lite.TFLiteConverter.from_keras_model_file(keras_file)
 # tflite_model = converter.convert()
 #
@@ -116,7 +119,7 @@ model.save('module_4_model')
 # with open('model.tflite', 'wb') as f:
 #   f.write(tflite_model)
 
-
+# run the model on the training set and present the images.
 fig = plt.figure(figsize=(14,14))
 for cnt, data in enumerate(testing_images[10:40]):
 
@@ -132,5 +135,4 @@ for cnt, data in enumerate(testing_images[10:40]):
     plt.title(str_label)
     y.axes.get_xaxis().set_visible(False)
     y.axes.get_yaxis().set_visible(False)
-
 plt.show()
