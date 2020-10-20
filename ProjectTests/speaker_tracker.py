@@ -51,6 +51,7 @@ class SpeakerTracker(object):
         self.ut = None
         self.faces = None
         self.track_face = None
+        self.track_attention_score = None
         self.speaker_dict = None
         self.head_pose_faces = []
         self.gaze_faces = []
@@ -61,6 +62,7 @@ class SpeakerTracker(object):
         self.orig_img = copy.deepcopy(image)
         self.size = image.shape
         self.track_face = None
+        self.track_attention_score = None
         self.speaker_dict = None
         self.ut = [1000, 1000]
         self.new_face_tracker()
@@ -243,6 +245,7 @@ class SpeakerTracker(object):
             for face in self.faces_df["faces"][self.track_index]:
                 if face:
                     self.track_face = face
+                    self.track_attention_score = max_score
                     break
         # print(max_score)
         # print(self.track_index)

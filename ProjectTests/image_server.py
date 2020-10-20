@@ -52,7 +52,14 @@ try:
         speaker_tracker.refresh(img)
 
         cv2.imshow("Image", speaker_tracker.img)
-        send_data = struct.pack('<2f', speaker_tracker.ut[0], speaker_tracker.ut[1])
+
+        # extract attention score
+        if speaker_tracker.track_attention_score:
+            attention_score = speaker_tracker.track_attention_score
+        else:
+            attention_score = 0
+
+        send_data = struct.pack('<3f', speaker_tracker.ut[0], speaker_tracker.ut[1], attention_score)
         result_connection.send(send_data)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):

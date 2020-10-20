@@ -10,6 +10,9 @@ import pigpio
 image_port = 8000
 result_port = 8080
 
+max_attention_score = 60
+attention_threshold = 20
+
 # intial comment for dlib branch
 
 def set_servo(pi, ut):
@@ -39,6 +42,35 @@ def servoCamCentre(pi):
     pi.set_servo_pulsewidth(18, 1500)
     pi.set_servo_pulsewidth(17, 1000)
 
+def hapticControl(value,attentionLevel,maxAttentionLevel,thresholdAttentionLevel):
+    #range of angle : 500 - 2500
+    angle = ((value - 1500) / 2000) * 180
+    if angle < -54 and angle >= -90:
+        pin = 5
+    elif angle < -18 and angle >= -54:
+        pin = 6
+    elif angle < 18 and angle >= -18:
+        pin = 13
+    elif angle < 54 and angle >= 18:
+        pin = 19
+    elif angle <= 90 and angle >= 54:
+        pin = 26
+
+    runHaptic(pin,attentionLevel,maxAttentionLevel,thresholdAttentionLevel)
+
+def runHaptic(pin, attentionLevel,maxAttentionLevel,thresholdAttentionLevel):
+    #level range (0, 60)
+    #dutycycle range (0, 30)
+    resetHaptic()
+    dutycycle = ( attentionLevel / maxAttentionLevel) * 30
+    if attentionLevel >= thresholdAttentionLevel:
+        pi.set_PWM_dutycycle(pin,dutycycle)
+    print(pin, dutycycle)
+
+def resetHaptic():
+    for i in [5, 6, 13, 19, 26]:
+        pi.set_PWM_dutycycle(i, 0)
+
 # thread takes delay time, and the pin numbers of the outer LEDs as input
 class thread(threading.Thread):
     def __init__(self):
@@ -57,18 +89,31 @@ class thread(threading.Thread):
             pi.set_mode(17, pigpio.OUTPUT)
             servoCamCentre(pi)
 
+            # declare haptic pins
+            for i in [5, 6, 13, 19, 26]:
+                pi.set_mode(i, pigpio.OUTPUT)
+                pi.set_PWM_frequency(i, 50)
+
             while True:
                 result = result_client_socket.recv(4096)
                 close_message = 'close'
                 
                 if len(result) == 8:
-                    ut_received = struct.unpack('<2f', result)
-                    print(ut_received)
-                    if ut_received[0] == 1000:
+                    result_unpacked = struct.unpack('<3f', result)
+                    print(result_unpacked)
+                    if result_unpacked[0] == 1000:
                         continue
+
+                    # extract ut and attention score
+                    ut_received = [result_unpacked[0], result_unpacked[1]]
+                    attention_score = [result_unpacked[2]]
+
+                    # set servos
                     set_servo(pi, ut_received)
 
-
+                    # update haptics
+                    value = pi.get_servo_pulsewidth(18)
+                    hapticControl(value, attention_score, max_attention_score, attention_threshold)
 
                 elif result == close_message.encode():
                     print(result.decode())
