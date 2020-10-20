@@ -62,7 +62,7 @@ def runHaptic(pin, attentionLevel,maxAttentionLevel,thresholdAttentionLevel):
     #level range (0, 60)
     #dutycycle range (0, 30)
     resetHaptic()
-    dutycycle = ( attentionLevel / maxAttentionLevel) * 30
+    dutycycle = (attentionLevel / maxAttentionLevel) * 30
     if attentionLevel >= thresholdAttentionLevel:
         pi.set_PWM_dutycycle(pin,dutycycle)
     print(pin, dutycycle)
@@ -96,24 +96,26 @@ class thread(threading.Thread):
 
             while True:
                 result = result_client_socket.recv(4096)
+                print(len(result))
                 close_message = 'close'
-                
-                if len(result) == 8:
+
+                if len(result) == 12:
                     result_unpacked = struct.unpack('<3f', result)
                     print(result_unpacked)
+
                     if result_unpacked[0] == 1000:
                         continue
 
                     # extract ut and attention score
                     ut_received = [result_unpacked[0], result_unpacked[1]]
-                    attention_score = [result_unpacked[2]]
+                    attention_score = result_unpacked[2]
 
                     # set servos
                     set_servo(pi, ut_received)
 
                     # update haptics
                     value = pi.get_servo_pulsewidth(18)
-                    hapticControl(value, attention_score, max_attention_score, attention_threshold)
+                    hapticControl(pi, value, attention_score, max_attention_score, attention_threshold)
 
                 elif result == close_message.encode():
                     print(result.decode())

@@ -58,6 +58,8 @@ try:
             attention_score = speaker_tracker.track_attention_score
         else:
             attention_score = 0
+        attention_score = float(attention_score)
+        print(attention_score)
 
         send_data = struct.pack('<3f', speaker_tracker.ut[0], speaker_tracker.ut[1], attention_score)
         result_connection.send(send_data)
