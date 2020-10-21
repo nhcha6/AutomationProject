@@ -31,6 +31,7 @@ class SpeakerTracker(object):
         self.gaze_score = 5
         self.headpose_score = 3
         self.face_score = 1
+        self.min_track_score = 12
 
         # declare speaker hyper parameters
         self.mouth_threshold = 0.0005
@@ -229,12 +230,15 @@ class SpeakerTracker(object):
                     break
 
     def find_track_face(self):
-        max_score = 0
+        max_score = self.min_track_score
         if self.track_index not in self.faces_df.index:
             self.track_index = None
 
         if self.track_index is not None:
-            max_score = self.faces_df["attention_score"][self.track_index]
+            if self.faces_df["attention_score"][self.track_index] > max_score:
+                max_score = self.faces_df["attention_score"][self.track_index]
+            else:
+                self.track_index = None
 
         for index, row in self.faces_df.iterrows():
             if self.faces_df["attention_score"][index] > max_score:
