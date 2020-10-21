@@ -101,11 +101,13 @@ class thread(threading.Thread):
 
             while True:
                 result = result_client_socket.recv(4096)
+                print(len(result))
                 close_message = 'close'
                 
                 if len(result) == 12:
                     result_unpacked = struct.unpack('<3f', result)
                     #print(result_unpacked)
+
                     if result_unpacked[0] == 1000:
                         continue
 
