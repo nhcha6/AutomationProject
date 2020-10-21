@@ -7,8 +7,8 @@ import threading
 import ctypes
 import pigpio
 
-image_port = 8005
-result_port = 8085
+image_port = 8007
+result_port = 8087
 
 max_attention_score = 60
 attention_threshold = 20
@@ -51,7 +51,7 @@ def pan_to_centre(pi):
         pi.set_servo_pulsewidth(18, desire_pulsewidth_X)
 
         current_pulsewidth_Y = pi.get_servo_pulsewidth(17)
-        delta_pulsewidth_Y = (1250 - current_pulsewidth_Y) * 0.3
+        delta_pulsewidth_Y = (1500 - current_pulsewidth_Y) * 0.3
         desire_pulsewidth_Y = current_pulsewidth_Y + delta_pulsewidth_Y
         pi.set_servo_pulsewidth(17, desire_pulsewidth_Y)
     except AttributeError as e:
@@ -60,7 +60,7 @@ def pan_to_centre(pi):
 
 def servoCamCentre(pi):
     pi.set_servo_pulsewidth(18, 1500)
-    pi.set_servo_pulsewidth(17, 1000)
+    pi.set_servo_pulsewidth(17, 1500)
 
 
 def hapticControl(pi, value, attentionLevel, maxAttentionLevel, thresholdAttentionLevel):
