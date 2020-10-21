@@ -13,6 +13,7 @@ result_port = 8082
 max_attention_score = 60
 attention_threshold = 20
 
+
 # intial comment for dlib branch
 
 def set_servo(pi, ut):
@@ -38,12 +39,32 @@ def set_servo(pi, ut):
     except AttributeError as e:
         print(e)
 
+
+def pan_to_centre(pi):
+    # pi.set_mode(23, pigpio.INPUT) #set pin 23 as input
+    # pi.set_pull_up_down(23, pigpio.PUD_UP) #set internal pull up resistor for pin 23
+    # print(pi.read(23)) #get the pin status, should print 1
+    try:
+        current_pulsewidth_X = pi.get_servo_pulsewidth(18)
+        delta_pulsewidth_X = (1500 - current_pulsewidth_X) * 0.3
+        desire_pulsewidth_X = current_pulsewidth_X + delta_pulsewidth_X
+        pi.set_servo_pulsewidth(18, desire_pulsewidth_X)
+
+        current_pulsewidth_Y = pi.get_servo_pulsewidth(17)
+        delta_pulsewidth_Y = (1500 - current_pulsewidth_Y) * 0.3
+        desire_pulsewidth_Y = current_pulsewidth_Y + delta_pulsewidth_Y
+        pi.set_servo_pulsewidth(17, desire_pulsewidth_Y)
+    except AttributeError as e:
+        print(e)
+
+
 def servoCamCentre(pi):
     pi.set_servo_pulsewidth(18, 1500)
     pi.set_servo_pulsewidth(17, 1000)
 
-def hapticControl(pi, value,attentionLevel,maxAttentionLevel,thresholdAttentionLevel):
-    #range of angle : 500 - 2500
+
+def hapticControl(pi, value, attentionLevel, maxAttentionLevel, thresholdAttentionLevel):
+    # range of angle : 500 - 2500
     angle = ((value - 1500) / 2000) * 180
     if angle < -54 and angle >= -90:
         pin = 26
@@ -61,20 +82,23 @@ def hapticControl(pi, value,attentionLevel,maxAttentionLevel,thresholdAttentionL
         pin = 5
         print(5)
 
-    runHaptic(pi, pin,attentionLevel,maxAttentionLevel,thresholdAttentionLevel)
+    runHaptic(pi, pin, attentionLevel, maxAttentionLevel, thresholdAttentionLevel)
 
-def runHaptic(pi, pin, attentionLevel,maxAttentionLevel,thresholdAttentionLevel):
-    #level range (0, 60)
-    #dutycycle range (0, 30)
+
+def runHaptic(pi, pin, attentionLevel, maxAttentionLevel, thresholdAttentionLevel):
+    # level range (0, 60)
+    # dutycycle range (0, 30)
     resetHaptic(pi)
-    dutycycle = ( attentionLevel / maxAttentionLevel) * 200
+    dutycycle = (attentionLevel / maxAttentionLevel) * 200
     if attentionLevel >= thresholdAttentionLevel:
-        pi.set_PWM_dutycycle(pin,dutycycle)
-    #print(pin, dutycycle)
+        pi.set_PWM_dutycycle(pin, dutycycle)
+    # print(pin, dutycycle)
+
 
 def resetHaptic(pi):
     for i in [5, 6, 13, 19, 26]:
         pi.set_PWM_dutycycle(i, 0)
+
 
 # thread takes delay time, and the pin numbers of the outer LEDs as input
 class thread(threading.Thread):
@@ -103,12 +127,14 @@ class thread(threading.Thread):
                 result = result_client_socket.recv(4096)
                 print(len(result))
                 close_message = 'close'
-                
+
                 if len(result) == 12:
                     result_unpacked = struct.unpack('<3f', result)
-                    #print(result_unpacked)
+                    # print(result_unpacked)
 
                     if result_unpacked[0] == 1000:
+                        # no face recieved to track, so pan to centre.
+                        pan_to_centre(pi)
                         continue
 
                     # extract ut and attention score
@@ -123,12 +149,12 @@ class thread(threading.Thread):
                     hapticControl(pi, value, attention_score, max_attention_score, attention_threshold)
 
                 elif result == close_message.encode():
-                    #print(result.decode())
+                    # print(result.decode())
                     global closeFlag
                     closeFlag = True
         except Exception as e:
             print(e)
-            
+
         finally:
             resetHaptic(pi)
             result_client_socket.close()
@@ -151,6 +177,7 @@ class thread(threading.Thread):
         if res > 1:
             ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
             print('Exception raise failure')
+
 
 # start thread to handle servo stuff
 result_thread = thread()
