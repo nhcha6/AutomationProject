@@ -51,7 +51,7 @@ def resetHaptic():
 pi = pigpio.pi()
 for i in [5, 6, 13, 19, 26]:
     pi.set_mode(i, pigpio.OUTPUT)
-    pi.set_PWM_frequency(i, 50)
+    pi.set_PWM_frequency(i, 80)
 
  
-hapticControl(2000,55,60,20)
+hapticControl(1000,20,60,20)
