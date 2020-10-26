@@ -282,7 +282,8 @@ class SpeakerTracker(object):
 
                     # talking criteria
                     if index>self.mouth_threshold:
-                        cv2.putText(self.img, 'Talking', (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (0, 0, 255), 2)
+                        print("talking")
+                        #cv2.putText(self.img, 'Talking', (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (0, 0, 255), 2)
 
                     # update threshold
                     self.update_threshold()
@@ -323,6 +324,9 @@ class SpeakerTracker(object):
         print("new thresh: " + str(self.mouth_threshold))
 
     def summarise_frame(self):
+        cv2.putText(self.img, 'face', (20, 20), cv2.FONT_HERSHEY_DUPLEX, 0.5, (0, 0, 255), 2)
+        cv2.putText(self.img, 'headpose at camera', (20, 40), cv2.FONT_HERSHEY_DUPLEX, 0.5, (0, 255, 0), 2)
+        cv2.putText(self.img, 'gaze at camera', (20, 60), cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 0, 0), 2)
         for key, value in self.speaker_dict.items():
             self.highlight_faces(key, value)
 
