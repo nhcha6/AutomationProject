@@ -7,12 +7,12 @@ import threading
 import ctypes
 import pigpio
 
-image_port = 8007
+image_port = 8008
 result_port = 8087
 
 max_attention_score = 60
 attention_threshold = 20
-
+direction = 1
 
 # intial comment for dlib branch
 
@@ -41,15 +41,21 @@ def set_servo(pi, ut):
 
 
 def pan_to_centre(pi):
+    global direction
     # pi.set_mode(23, pigpio.INPUT) #set pin 23 as input
     # pi.set_pull_up_down(23, pigpio.PUD_UP) #set internal pull up resistor for pin 23
     # print(pi.read(23)) #get the pin status, should print 1
     try:
+        # pan in x axis
         current_pulsewidth_X = pi.get_servo_pulsewidth(18)
-        delta_pulsewidth_X = (1500 - current_pulsewidth_X) * 0.3
-        desire_pulsewidth_X = current_pulsewidth_X + delta_pulsewidth_X
+        if current_pulsewidth_X > 2400:
+            direction = -1
+        elif current_pulsewidth_X < 600:
+            direction = 1
+        desired_pulsewidth_X = current_pulsewidth_X + direction*100
         pi.set_servo_pulsewidth(18, desire_pulsewidth_X)
 
+        # centre in y axis
         current_pulsewidth_Y = pi.get_servo_pulsewidth(17)
         delta_pulsewidth_Y = (1500 - current_pulsewidth_Y) * 0.3
         desire_pulsewidth_Y = current_pulsewidth_Y + delta_pulsewidth_Y
