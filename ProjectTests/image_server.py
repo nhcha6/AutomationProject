@@ -6,7 +6,7 @@ import numpy as np
 from speaker_tracker import SpeakerTracker
 
 image_port = 8008
-result_port = 8087
+result_port = 8088
 
 # Start a socket listening for connections on 0.0.0.0:8000 (0.0.0.0 means
 # all interfaces)

@@ -8,7 +8,7 @@ import ctypes
 import pigpio
 
 image_port = 8008
-result_port = 8087
+result_port = 8088
 
 max_attention_score = 60
 attention_threshold = 20
@@ -52,7 +52,7 @@ def pan_to_centre(pi):
             direction = -1
         elif current_pulsewidth_X < 600:
             direction = 1
-        desired_pulsewidth_X = current_pulsewidth_X + direction*100
+        desire_pulsewidth_X = current_pulsewidth_X + direction*100
         pi.set_servo_pulsewidth(18, desire_pulsewidth_X)
 
         # centre in y axis
