@@ -7,8 +7,8 @@ import threading
 import ctypes
 import pigpio
 
-image_port = 8008
-result_port = 8088
+image_port = 8010
+result_port = 8090
 
 max_attention_score = 60
 attention_threshold = 20

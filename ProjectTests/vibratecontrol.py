@@ -39,7 +39,7 @@ def runHaptic(pin, attentionLevel,maxAttentionLevel,thresholdAttentionLevel):
     #level range (0, 60)
     #dutycycle range (0, 30)
     resetHaptic()
-    dutycycle = ( attentionLevel / maxAttentionLevel) * 30
+    dutycycle = ( attentionLevel / maxAttentionLevel) * 40
     if attentionLevel >= thresholdAttentionLevel:
         pi.set_PWM_dutycycle(pin,dutycycle)
     print(pin, dutycycle)
