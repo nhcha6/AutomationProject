@@ -52,7 +52,7 @@ def pan_to_centre(pi):
             direction = -1
         elif current_pulsewidth_X < 600:
             direction = 1
-        desire_pulsewidth_X = current_pulsewidth_X + direction*100
+        desire_pulsewidth_X = current_pulsewidth_X + direction*75
         pi.set_servo_pulsewidth(18, desire_pulsewidth_X)
 
         # centre in y axis
